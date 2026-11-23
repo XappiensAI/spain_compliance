@@ -1,8 +1,25 @@
-# Registro fiscal de IVA
+# Libro de IVA (sobre el mayor)
 
-Al validar una factura de venta o de compra, Spain Compliance guarda su desglose fiscal en **Registro Fiscal IVA**: una fila por clave de operación y tipo impositivo. De aquí saldrán los libros registro y los modelos (303, 390, 349, 347, retenciones). Cancelar la factura no borra las filas: las marca como anuladas.
+El libro de IVA, la liquidación y el SII se calculan **sobre los apuntes contables de IVA**. No se guarda ningún registro aparte (hasta la v0.3 existía el DocType *Registro Fiscal IVA*; se retiró para no duplicar información). La copia y la exigencia de la clasificación solo actúan en compañías con país **Spain** o con el Plan General Contable activo.
 
-Solo ocurre en compañías con país **Spain** o con el Plan General Contable activo. El resto de compañías del sitio no se toca.
+Código — `spain_compliance.contabilidad.libro_iva.movimientos_iva(company, desde, hasta, libro)`.
+
+## De dónde sale cada dato
+
+| Dato | Origen |
+|------|--------|
+| Cuota | `GL Entry` de las cuentas de impuestos (`account_type = Tax`), no canceladas, agrupado por documento y cuenta |
+| Tipo, clave de IVA, deducibilidad, clave de retención | Fila de impuestos del documento con esa cuenta. Si los artículos usan una *Item Tax Template* con clave, manda esa |
+| Base imponible | `base_net_amount` de la fila (negativa en rectificativas) |
+| Tercero, NIF, país, nº de factura del proveedor, factura rectificada | Cabecera del documento y ficha del tercero |
+| Cuota deducible (recibidas) | Cuota × prorrata general de la compañía (0 si la fila es *No deducible*) |
+
+Por construcción, **la suma de cuotas de un periodo es el movimiento de las cuentas de impuestos** en el mayor.
+
+- Las operaciones sin cuota (exentas, no sujetas, al 0 %) no generan apunte. El libro las añade desde las filas de impuestos con cuota 0 de las facturas validadas del periodo, y añade una línea *sin clasificar* por cada factura validada sin ninguna fila de impuestos.
+- Los apuntes de IVA de asientos manuales (Journal Entry) salen *sin clasificar*. Si la cuenta empieza por 477 van a expedidas y si empieza por 472 a recibidas.
+- Una factura cancelada no está en el mayor, así que no sale en el libro.
+- La autorrepercusión (adquisiciones intracomunitarias, inversión del sujeto pasivo) es la fila que *resta* en la compra. Sale marcada como `autorrepercusion` y la liquidación la suma al IVA devengado.
 
 ## Clasificación
 
@@ -41,14 +58,6 @@ Por defecto la factura se valida igual y las filas quedan pendientes de clasific
 
 En Cliente y Proveedor, *Tipo de identificación fiscal*. Al guardar se comprueba el dígito de control del NIF, NIE o CIF, y el NIF-IVA (si empieza por `ES`, el resto tiene que ser un NIF válido; otro país solo se comprueba el formato). Si no cuadra se avisa y el tercero se guarda igual. Pasaporte, documento oficial y certificado de residencia no se validan como NIF.
 
-## Reconstruir facturas ya validadas
+## Identificación del tercero
 
-Company → **Contabilidad España** → *Reconstruir registro fiscal de IVA* (gestor de cuentas). Primero muestra una vista previa, sin escribir. Al confirmar, recalcula en segundo plano las facturas validadas de esa compañía y sustituye sus filas vigentes.
-
-Las facturas antiguas no se modifican. Si su fila de impuesto no tiene clasificación, el registro usa la de la plantilla en ese momento. Clasifica las plantillas antes de reconstruir si quieres que el histórico quede bien.
-
-No se lanza solo: ni al migrar ni al instalar.
-
-## Lo que todavía no hace
-
-No genera el libro registro ni el 303: solo deja el desglose. Los asientos (Journal Entry) no entran. Una misma fila de impuesto con artículos de distinta clave que además comparten código de artículo no se puede separar, porque ERPNext los agrupa; en ese caso manda la clave de la fila.
+En Cliente y Proveedor, *Tipo de identificación fiscal*. Al guardar se comprueba el dígito de control del NIF, NIE o CIF, y el NIF-IVA (si empieza por `ES`, el resto tiene que ser un NIF válido; otro país solo se comprueba el formato). Si no cuadra se avisa y el tercero se guarda igual. Pasaporte, documento oficial y certificado de residencia no se validan como NIF.

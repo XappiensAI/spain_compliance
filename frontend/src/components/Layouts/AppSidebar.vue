@@ -39,7 +39,7 @@
               :key="item.name"
               :to="{ name: item.name }"
               :label="__(item.label)"
-              :active="route.name === item.name"
+              :active="activeName === item.name"
               @click="onNavigate"
             >
               <template #prefix>
@@ -114,8 +114,11 @@ function openSectionForRoute(routeName) {
   }
 }
 
+// Las vistas de detalle marcan su listado (`meta.parent`).
+const activeName = computed(() => route.meta?.parent || route.name)
+
 watch(
-  () => route.name,
+  activeName,
   (name) => {
     if (name) openSectionForRoute(name)
   },

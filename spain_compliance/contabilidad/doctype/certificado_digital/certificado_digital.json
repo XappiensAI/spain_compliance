@@ -1,0 +1,216 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "CERT-.#####",
+ "naming_rule": "Expression (old style)",
+ "creation": "2026-11-12 06:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "titulo",
+  "certificado",
+  "password",
+  "column_break_estado",
+  "estado",
+  "valido_hasta",
+  "predeterminado",
+  "section_usos",
+  "usar_sii",
+  "usar_verifactu",
+  "usar_firma",
+  "section_datos",
+  "titular",
+  "nif_titular",
+  "entidad",
+  "nif_entidad",
+  "column_break_datos",
+  "emisor",
+  "numero_serie",
+  "valido_desde",
+  "huella_sha256"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Compañía",
+   "options": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "titulo",
+   "fieldtype": "Data",
+   "label": "Título",
+   "description": "Se rellena con el titular y la caducidad si se deja vacío."
+  },
+  {
+   "fieldname": "certificado",
+   "fieldtype": "Attach",
+   "label": "Fichero .p12 / .pfx",
+   "reqd": 1,
+   "description": "Se guarda como adjunto privado."
+  },
+  {
+   "fieldname": "password",
+   "fieldtype": "Password",
+   "label": "Contraseña",
+   "reqd": 1,
+   "description": "Se guarda cifrada. Al guardar se comprueba que abre el certificado."
+  },
+  {
+   "fieldname": "column_break_estado",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Vigente\nPróximo a caducar\nCaducado",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Vigente"
+  },
+  {
+   "fieldname": "valido_hasta",
+   "fieldtype": "Date",
+   "label": "Válido hasta",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "predeterminado",
+   "fieldtype": "Check",
+   "label": "Predeterminado de la compañía",
+   "default": "0",
+   "description": "Si hay varios vigentes para un mismo uso, se usa este."
+  },
+  {
+   "fieldname": "section_usos",
+   "fieldtype": "Section Break",
+   "label": "Usos"
+  },
+  {
+   "fieldname": "usar_sii",
+   "fieldtype": "Check",
+   "label": "SII",
+   "default": "1"
+  },
+  {
+   "fieldname": "usar_verifactu",
+   "fieldtype": "Check",
+   "label": "Veri*factu",
+   "default": "1"
+  },
+  {
+   "fieldname": "usar_firma",
+   "fieldtype": "Check",
+   "label": "Firma de documentos",
+   "default": "1"
+  },
+  {
+   "fieldname": "section_datos",
+   "fieldtype": "Section Break",
+   "label": "Datos del certificado",
+   "collapsible": 0
+  },
+  {
+   "fieldname": "titular",
+   "fieldtype": "Data",
+   "label": "Titular",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nif_titular",
+   "fieldtype": "Data",
+   "label": "NIF del titular",
+   "read_only": 1
+  },
+  {
+   "fieldname": "entidad",
+   "fieldtype": "Data",
+   "label": "Entidad",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nif_entidad",
+   "fieldtype": "Data",
+   "label": "NIF de la entidad",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_datos",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "emisor",
+   "fieldtype": "Data",
+   "label": "Emisor",
+   "read_only": 1
+  },
+  {
+   "fieldname": "numero_serie",
+   "fieldtype": "Data",
+   "label": "Número de serie",
+   "read_only": 1
+  },
+  {
+   "fieldname": "valido_desde",
+   "fieldtype": "Date",
+   "label": "Válido desde",
+   "read_only": 1
+  },
+  {
+   "fieldname": "huella_sha256",
+   "fieldtype": "Small Text",
+   "label": "Huella SHA-256",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-12 06:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "Contabilidad",
+ "name": "Certificado Digital",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 0,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 0,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "valido_hasta",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "titulo",
+ "show_title_field_in_link": 1,
+ "search_fields": "titular,nif_entidad",
+ "track_changes": 1,
+ "make_attachment_public": 0
+}

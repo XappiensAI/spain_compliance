@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # Parches de informes financieros para el árbol PGC de 9 grupos.
 # Se aplican al cargar la app (antes de que se importen los módulos de informes).

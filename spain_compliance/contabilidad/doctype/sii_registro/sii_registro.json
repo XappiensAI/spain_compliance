@@ -1,0 +1,342 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-12 12:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "Contabilidad",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "row_format": "Dynamic",
+ "states": [],
+ "name": "SII Registro",
+ "autoname": "",
+ "naming_rule": "By script",
+ "allow_rename": 0,
+ "track_changes": 0,
+ "sort_field": "fecha_contable",
+ "sort_order": "DESC",
+ "title_field": "numero_factura",
+ "show_title_field_in_link": 1,
+ "search_fields": "documento,numero_factura,tercero,nif",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "field_order": [
+  "company",
+  "libro",
+  "documento_tipo",
+  "documento",
+  "numero_factura",
+  "column_break_1",
+  "estado",
+  "tipo_comunicacion",
+  "entorno",
+  "origen",
+  "fecha_limite",
+  "section_factura",
+  "tercero",
+  "nif",
+  "fecha_expedicion",
+  "column_break_2",
+  "fecha_contable",
+  "ejercicio",
+  "periodo",
+  "importe_total",
+  "section_respuesta",
+  "csv",
+  "fecha_envio",
+  "intentos",
+  "column_break_3",
+  "codigo_error",
+  "descripcion_error",
+  "section_consulta",
+  "estado_aeat",
+  "estado_cuadre",
+  "column_break_4",
+  "fecha_consulta",
+  "section_eventos",
+  "eventos",
+  "section_xml",
+  "xml_enviado",
+  "respuesta"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Compañía",
+   "options": "Company",
+   "reqd": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "libro",
+   "fieldtype": "Select",
+   "label": "Libro",
+   "options": "Expedidas\nRecibidas",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "documento_tipo",
+   "fieldtype": "Link",
+   "label": "Tipo de documento",
+   "options": "DocType",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "documento",
+   "fieldtype": "Dynamic Link",
+   "label": "Factura",
+   "options": "documento_tipo",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "numero_factura",
+   "fieldtype": "Data",
+   "label": "Número de factura",
+   "read_only": 1,
+   "description": "Número que se comunica (en recibidas, el del proveedor)."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Pendiente\nAceptado\nAceptado con errores\nRechazado\nError de comunicación\nError de datos\nBaja pendiente\nDado de baja\nNo aplica",
+   "default": "Pendiente",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "tipo_comunicacion",
+   "fieldtype": "Select",
+   "label": "Tipo de comunicación",
+   "options": "A0\nA1",
+   "default": "A0",
+   "read_only": 1,
+   "description": "A0 = alta, A1 = modificación de una factura ya comunicada."
+  },
+  {
+   "fieldname": "entorno",
+   "fieldtype": "Select",
+   "label": "Entorno",
+   "options": "\nPruebas\nProducción",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "origen",
+   "fieldtype": "Select",
+   "label": "Origen",
+   "options": "Frappe\nConsulta AEAT\nImportado",
+   "default": "Frappe",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fecha_limite",
+   "fieldtype": "Date",
+   "label": "Fecha límite",
+   "read_only": 1,
+   "description": "4 días hábiles (sin sábados, domingos ni festivos nacionales) y antes del día 16 del mes siguiente."
+  },
+  {
+   "fieldname": "section_factura",
+   "fieldtype": "Section Break",
+   "label": "Factura"
+  },
+  {
+   "fieldname": "tercero",
+   "fieldtype": "Data",
+   "label": "Tercero",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nif",
+   "fieldtype": "Data",
+   "label": "NIF / identificador",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fecha_expedicion",
+   "fieldtype": "Date",
+   "label": "Fecha de expedición",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fecha_contable",
+   "fieldtype": "Date",
+   "label": "Fecha contable",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ejercicio",
+   "fieldtype": "Data",
+   "label": "Ejercicio",
+   "read_only": 1
+  },
+  {
+   "fieldname": "periodo",
+   "fieldtype": "Data",
+   "label": "Periodo",
+   "read_only": 1
+  },
+  {
+   "fieldname": "importe_total",
+   "fieldtype": "Currency",
+   "label": "Importe total",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "section_respuesta",
+   "fieldtype": "Section Break",
+   "label": "Respuesta de la AEAT"
+  },
+  {
+   "fieldname": "csv",
+   "fieldtype": "Data",
+   "label": "CSV",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fecha_envio",
+   "fieldtype": "Datetime",
+   "label": "Último envío",
+   "read_only": 1
+  },
+  {
+   "fieldname": "intentos",
+   "fieldtype": "Int",
+   "label": "Intentos",
+   "read_only": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "codigo_error",
+   "fieldtype": "Data",
+   "label": "Código de error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "descripcion_error",
+   "fieldtype": "Small Text",
+   "label": "Descripción del error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_consulta",
+   "fieldtype": "Section Break",
+   "label": "Última consulta",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "estado_aeat",
+   "fieldtype": "Data",
+   "label": "Estado en la AEAT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "estado_cuadre",
+   "fieldtype": "Data",
+   "label": "Estado de cuadre",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fecha_consulta",
+   "fieldtype": "Datetime",
+   "label": "Fecha de la consulta",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_eventos",
+   "fieldtype": "Section Break",
+   "label": "Historial"
+  },
+  {
+   "fieldname": "eventos",
+   "fieldtype": "Table",
+   "label": "Eventos",
+   "options": "SII Registro Evento",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_xml",
+   "fieldtype": "Section Break",
+   "label": "XML",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "xml_enviado",
+   "fieldtype": "Code",
+   "label": "XML enviado",
+   "options": "XML",
+   "read_only": 1
+  },
+  {
+   "fieldname": "respuesta",
+   "fieldtype": "Code",
+   "label": "Respuesta",
+   "options": "XML",
+   "read_only": 1
+  }
+ ]
+}

@@ -17,6 +17,7 @@ Spain Compliance lets each account keep **its own** `root_type` regardless of it
 - Company checkbox **Plan General Contable (árbol de 9 grupos)**.
 - One-click conversion of an existing company chart to the 9-group tree (*Company → Contabilidad España → Convertir plan a PGC*): creates groups 1–9 and the two-digit subgroups, re-parents numbered accounts by prefix, deletes (or disables and re-parents) the leftover ERPNext standard accounts.
 - Financial statements include the full PGC hierarchy for PGC companies; non-PGC companies are untouched.
+- Each account's `root_type` comes from its **PGC nature** (`root_type_pgc`, longest prefix up to three digits): 470–474 asset and 475–479 liability, 438 liability, 407 asset, 50–52 liability, 53–54 asset… The bundled chart and new groups follow it. Companies loaded with an earlier chart can be checked and fixed with `spain_compliance.contabilidad.arbol_pgc.corregir_tipos_raiz` (dry run by default; it does not touch ledger entries).
 
 ### One ledger account per customer and supplier
 In the PGC each customer gets its own 430 sub-account and each supplier its own 400/410 sub-account. When enabled on a PGC company, Spain Compliance creates that account with the next free number (`43000001`, `43000002`…) when the party is created, and assigns it on the party's *Accounts* table. Parties created before enabling it get their account on their next invoice, or in bulk from the Company form. Off by default. Details: [docs/cuentas-tercero.md](docs/cuentas-tercero.md).
@@ -29,15 +30,24 @@ Spanish invoicing rules require rectifying invoices to use their own series. ERP
 
 `{company_abbr}` resolves to the Company abbreviation when the invoice is named, so you can also use it in the ordinary series (e.g. `{company_abbr}.F.YY.{#####}`). It is not a stored field: ERPNext already uses that name internally.
 
-### VAT breakdown (`Registro Fiscal IVA`)
+### VAT book from the ledger
 
-On submit of a sales or purchase invoice, a Spanish company (country Spain, or with the PGC tree enabled) gets one row per operation key and tax rate: base, rate, quota and, on purchases, the deductible quota after the company pro-rata. Cancelling the invoice marks the rows as void. Tax rows are classified on the tax template (type, VAT key, deductibility, withholding key); invoices copy that classification when their own row is empty. Unclassified taxes do not block posting unless the company asks for it. Details: [docs/registro-fiscal.md](docs/registro-fiscal.md).
+The VAT book, the VAT settlement draft and SII are computed **from the ledger's VAT entries** (no separate register). Each line is a GL movement on a tax account, enriched with the tax row's classification (type, VAT key, deductibility, withholding key), its taxable base and the invoice header. Exempt and 0 % invoices are added from their zero-quota tax rows, so the book covers every invoice and its quota total equals the tax accounts' movement. Tax rows are classified on the tax template; invoices copy that classification when their own row is empty. Unclassified taxes do not block posting unless the company asks for it. Details: [docs/libro-iva.md](docs/libro-iva.md).
+
+### SII (Suministro Inmediato de Información)
+Facturas emitidas and received are sent to the AEAT SII (schema 1.1) from the VAT book on the ledger, per company (*SII Configuracion*: test or production environment, start date, optional 15-minute automatic sending). Each invoice gets an *SII Registro* with status, CSV, errors, deadline (4 business days) and history. Supports A0, A1, cancellation (baja), per-invoice queries and whole-period reconciliation with the AEAT. Details: [docs/sii.md](docs/sii.md).
 
 ### Collection statuses: *Dudoso Cobro* and *Pérdida*
 Two extra values on the native `Sales Invoice.status` field (no custom column), with buttons on the invoice form and preserved across ERPNext's automatic status recalculation while the invoice is outstanding. Optionally, invoices overdue by *N* months (Company → **Meses hasta Dudoso Cobro**) are moved to *Dudoso Cobro* by a daily job. Disabled (0) by default.
 
+### Digital certificates
+DocType **Certificado Digital** stores each company's PKCS#12 certificate (`.p12` / `.pfx`) for SII, Veri*factu and document signing. The file is a private attachment and the password an encrypted `Password` field. On save the certificate is opened with that password and its holder, NIFs, issuer, serial number and validity dates are filled in automatically. A daily job flags certificates as *Próximo a caducar* / *Caducado* and notifies System and Accounts Managers 60, 30, 15, 7 and 1 days before expiry. Integrations get the certificate with `get_certificado(company, uso)` or temporary PEM files with `archivos_pem(company, uso)`. Details: [docs/certificados-digitales.md](docs/certificados-digitales.md).
+
 ### Contabilidad UI
-A [frappe-ui](https://github.com/frappe/frappe-ui) single-page app at `/contabilidad` (Apps screen → *Contabilidad*): dashboard with billing, cash-flow and receivables, and list views for invoices, payments, journal entries, parties, items and tax templates built on ERPNext DocTypes. Reports in the same app: libro diario (entry numbers for the fiscal year, filters and pagination), libro mayor (per account, running balance and balance chart), pérdidas y ganancias and balance laid out as the PGC *modelo normal* (masses, headings and line items down to sub-account, with prior-year comparison, waterfall, Sankey, balance-sheet masses and ratio checks), sumas y saldos by PGC level, libro de IVA and liquidación de IVA. Accounts are mapped to PGC headings by account number, not by the Desk tree. SII and Verifactu remain placeholders.
+A [frappe-ui](https://github.com/frappe/frappe-ui) single-page app at `/contabilidad` (Apps screen → *Contabilidad*): dashboard with billing, cash-flow and receivables, and list views for invoices, payments, journal entries, parties, items and tax templates built on ERPNext DocTypes. Reports in the same app: libro diario (entry numbers for the fiscal year, filters and pagination), libro mayor (per account, running balance and balance chart), pérdidas y ganancias and balance laid out as the PGC *modelo normal* (masses, headings and line items down to sub-account, with prior-year comparison, waterfall, Sankey, balance-sheet masses and ratio checks), sumas y saldos by PGC level, libro de IVA and liquidación de IVA. Accounts are mapped to PGC headings by account number, not by the Desk tree. Verifactu remains a placeholder.
+
+### Financial management
+Treasury, costs and KPIs in the same app, computed live from ERPNext documents and the ledger: receivables and payables with ageing and supplier payment schedule (plus the ICAC average payment period), a weekly or monthly cash-flow forecast from invoices, unbilled orders and recurring cash movements, the PGC cash flow statement (indirect method, reconciled to the change in cash), production costs per work order (materials, labour and overheads, standard vs actual with quantity and price variances), stock valuation by PGC class (30–36), profitability by item, customer, project or any accounting dimension, and management KPIs (EBITDA, operating margin, liquidity, revenue per employee…). Details: [docs/gestion-financiera.md](docs/gestion-financiera.md).
 
 ## Compatibility
 
@@ -77,6 +87,9 @@ Everything is configured per **Company**, section *Contabilidad España*:
 | Exigir clasificación fiscal | Block submitting invoices whose taxes are not classified. Drafts can still be saved. Off by default: the invoice posts and the VAT row is flagged as pending. |
 | Crear cuenta contable al dar de alta clientes / proveedores | Per-party ledger accounts (PGC companies only). Off by default. |
 | Prefijo / Dígitos de las cuentas | Account number prefix (`4300`, `4000`, `4100`…) and total length (8). |
+| Plantilla media (section *Indicadores*) | Average headcount for revenue per employee. Empty = computed from Employee records. |
+
+Warehouses and item groups have an optional *Clase de existencias* (PGC stock class) and workstation operating components a *Naturaleza del coste* (labour or overhead); see [docs/gestion-financiera.md](docs/gestion-financiera.md).
 
 Access to `/contabilidad` is granted to *Accounts User*, *Accounts Manager* and *System Manager*.
 
@@ -87,7 +100,8 @@ Access to `/contabilidad` is granted to *Accounts User*, *Accounts Manager* and 
 - [docs/correlatividad-facturas.md](docs/correlatividad-facturas.md) — correlatividad serie + fecha y Auto Repeat
 - [docs/series-facturas-abono.md](docs/series-facturas-abono.md) — series de facturas y rectificativas
 - [docs/cuentas-tercero.md](docs/cuentas-tercero.md) — cuentas 430/400 automáticas por cliente y proveedor
-- [docs/registro-fiscal.md](docs/registro-fiscal.md) — desglose de IVA al validar la factura
+- [docs/libro-iva.md](docs/libro-iva.md) — libro de IVA sobre el mayor y clasificación fiscal
+- [docs/gestion-financiera.md](docs/gestion-financiera.md) — tesorería, previsión, flujos de efectivo, costes de producción, existencias, rentabilidad e indicadores
 - [docs/desarrollo.md](docs/desarrollo.md) — arquitectura y directrices de desarrollo
 - [docs/publicacion.md](docs/publicacion.md) — cómo se mantiene y publica la app (GitLab canónico, GitHub público)
 

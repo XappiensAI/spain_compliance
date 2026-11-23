@@ -46,7 +46,7 @@ ERPNext Desk
   Account        ← override (root_type propio en compañías PGC)
   Company        ← Custom Fields + public/js/company.js (conversión PGC, cuentas de tercero pendientes)
   Customer / Supplier ← doc_events: subcuenta 430/400 (cuentas_tercero.py); aviso de NIF (identificacion.py)
-  Sales / Purchase Invoice ← doc_events: copia la clasificación al guardar; exigencia al validar; Registro Fiscal IVA al submit; anulado al cancelar
+  Sales / Purchase Invoice ← doc_events: copia la clasificación al guardar; exigencia al validar (el libro de IVA se calcula sobre el mayor)
   Informes financieros de Desk ← monkey_patches.py (Balance / PyG con árbol PGC)
 
 Portal /contabilidad
@@ -77,15 +77,24 @@ Portal /contabilidad
 | `contabilidad/cuentas_tercero.py` | Subcuenta por cliente/proveedor con secuencia PGC; backfill `crear_cuentas_pendientes` ([cuentas-tercero.md](cuentas-tercero.md)) |
 | `contabilidad/clasificacion.py` | Códigos de IVA, retención e identificación que se guardan en los Select |
 | `contabilidad/identificacion.py` | Validación de NIF/NIE/CIF/NIF-IVA (aviso, no bloqueo) |
-| `contabilidad/registro_fiscal.py` | Desglose al validar; `reconstruir_registro_fiscal` ([registro-fiscal.md](registro-fiscal.md)) |
-| `contabilidad/doctype/registro_fiscal_iva/` | DocType `Registro Fiscal IVA` |
+| `contabilidad/registro_fiscal.py` | Clasificación fiscal de filas de impuestos (copia y exigencia) |
+| `contabilidad/libro_iva.py` | Libro de IVA sobre el mayor ([libro-iva.md](libro-iva.md)) |
 | `contabilidad/pgc.py` | Cuadro de cuentas del PGC: nombres oficiales de grupos, subgrupos y cuentas de tres dígitos |
 | `contabilidad/cuentas_anuales.py` | Balance y PyG del modelo normal (masas, epígrafes, partidas) por prefijo de número; cuentas que cambian de lado según su saldo; sumas y saldos por nivel |
+| `contabilidad/certificados.py` + `contabilidad/doctype/certificado_digital/` | Certificados PKCS#12 por compañía, lectura de metadatos, acceso para integraciones y avisos de caducidad ([certificados-digitales.md](certificados-digitales.md)) |
+| `finanzas/flujos_efectivo.py` | Estado de flujos de efectivo (método indirecto) a partir del balance y la PyG PGC ([gestion-financiera.md](gestion-financiera.md)) |
+| `finanzas/tesoreria.py` | Partidas abiertas, antigüedad, vencimientos, PMP (ICAC), saldos y movimientos de tesorería, previsión de caja |
+| `finanzas/costes_produccion.py` | Coste estándar y real por orden de fabricación (MP, MO, CIF) y desviaciones |
+| `finanzas/existencias.py` | Valoración del libro de stock por clase PGC 30–36, almacén y artículo |
+| `finanzas/rentabilidad.py` | Margen comercial (Gross Profit) y resultado analítico por dimensión |
+| `finanzas/indicadores.py` | EBITDA, márgenes, ratios, ciclo de caja y productividad |
 | `monkey_patches.py` | Parches de `erpnext.accounts.report.financial_statements` para el árbol PGC |
 | `tasks.py` | Tarea diaria `auto_mark_dudoso_cobro` (por Company, `meses_dudoso_cobro`) |
 | `www/contabilidad.py` | Contexto SPA: Guest → login, `has_app_permission`, `get_boot` |
 | `api/permission.py` | Accounts User / Manager / System Manager / Administrator |
 | `api/dashboard.py` | Métricas del tablero |
+| `api/finanzas.py` | Endpoints de tesorería, flujos de efectivo, costes, existencias, rentabilidad e indicadores |
+| `api/facturas.py` | Vista de detalle de facturas de venta y de compra (`TIPOS` recoge lo que cambia: tercero, cuenta 430/400, tarifa, direcciones): `configuracion` (meta y dimensiones), `obtener`, `nueva`, `calcular` (rellena y recalcula sin guardar, con `cambio` para vaciar lo que depende del campo tocado), `guardar`, `validar`, `cancelar`, `eliminar`, `duplicar`, `rectificar`, `modificar` |
 | `api/informes.py` | Libro diario (paginado y con filtros), PyG, balance, sumas y saldos, libro mayor por cuenta, buscador de cuentas, libro de IVA, liquidación, plan de cuentas y ajustes |
 | `public/js/*.js` | Form scripts de Desk (Sales Invoice, Company) |
 | `patches/` | Migraciones de datos (`patches.txt`) |
@@ -103,9 +112,14 @@ Portal /contabilidad
 | `frontend/src/components/Layouts/*` | Shell |
 | `frontend/src/components/ListViewBuilder.vue` | Listas |
 | `frontend/src/components/ReportFrame.vue` | Marco de los informes: cabecera, compañía, periodo con atajos por ejercicio, exportar e imprimir |
-| `frontend/src/components/informes/*` | Tabla PGC desplegable, KPI, gráficos ECharts (cascada, Sankey, masas patrimoniales, ratios, mapa de composición) |
+| `frontend/src/components/informes/*` | Tabla PGC desplegable, tabla genérica con búsqueda y orden (`TablaInforme.vue`), KPI, gráficos ECharts (cascada, Sankey, masas patrimoniales, ratios, mapa de composición) |
 | `frontend/src/composables/paleta.js` | Paleta de datos de los gráficos |
 | `frontend/src/pages/*` | Páginas |
+| `api/hitos.py` | Hitos de facturación: `listar` (cada fila del calendario de pagos de las órdenes de venta validadas, con el seguimiento de `SRG Hito Facturacion` si existe y la factura que lo cubre, por `hito_pedido`, por líneas del pedido o por proyecto e importe) `factura_desde_hito` (factura sin guardar con las líneas del pedido al porcentaje del hito; los impuestos del pedido solo si tienen plantilla activa, si no los de las reglas de impuestos del cliente) y `validar_hito_unico` (doc_event `validate` de Sales Invoice, un hito solo se factura una vez). Las rectificativas restan del hito de la factura que rectifican |
+| `frontend/src/pages/HitosFacturacion.vue` | Página `/billing-milestones`. Hitos por facturar, listos, vencidos, en borrador y facturados, con el botón Crear factura que abre `Factura.vue` con `?pedido=&hito=` |
+| `frontend/src/pages/Factura.vue` | Detalle de factura de venta (`/sales-invoices/:name`) y de compra (`/purchase-invoices/:name`); `new` para crear. En compras añade nº y fecha del proveedor, retención IRPF, pago al contado, retención del pago y signo de los impuestos (suma o resta). Cabecera, líneas editables, impuestos, totales, asiento y cobros; panel derecho con la configuración de la factura o el detalle de la línea / impuesto seleccionado |
+| `frontend/src/components/factura/*` | `Campo` (campo según `fieldtype` del meta), `CampoLink` (búsqueda con `search_link`), `GrupoCampos`, `Seccion` y los paneles de factura, línea e impuesto. Los Custom Fields de cada instalación salen solos en «Otros datos» |
+| `frontend/src/composables/factura.js` | `TIPOS` (venta / compra) y estado del documento: recálculo en el servidor con espera al teclear, cola de cambios y guardado |
 
 ## Referencia de UI (no negociable)
 

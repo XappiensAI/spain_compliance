@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Xappiens and contributors
 # License: MIT
 
-"""Registro fiscal de IVA al validar facturas de una compañía española."""
+"""Libro de IVA sobre el mayor y clasificación fiscal de las facturas."""
 
 import frappe
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
@@ -18,7 +18,7 @@ from spain_compliance.contabilidad.clasificacion import (
 	TIPO_RETENCION,
 	etiqueta,
 )
-from spain_compliance.contabilidad.registro_fiscal import reconstruir, sincronizar
+from spain_compliance.contabilidad.libro_iva import movimientos_iva
 
 COMPANY = "_Test SC Fiscal"
 ABBR = "_TSCF"
@@ -37,31 +37,16 @@ def _grupo(doctype, name, field, parent):
 
 
 def _registros(voucher_no):
-	return frappe.get_all(
-		"Registro Fiscal IVA",
-		filters={"voucher_no": voucher_no, "anulado": 0},
-		fields=[
-			"name",
-			"libro",
-			"base_imponible",
-			"tipo_impositivo",
-			"cuota",
-			"cuota_deducible",
-			"clave_iva",
-			"clave_retencion",
-			"tipo_impuesto",
-			"sin_clasificar",
-			"tipo_factura",
-			"factura_rectificada",
-			"numero_externo",
-			"nif",
-			"pais",
-			"anulado",
-		],
-	)
+	"""Líneas del libro de IVA (desde el mayor) de un documento."""
+	hoy = nowdate()
+	return [
+		frappe._dict(linea)
+		for linea in movimientos_iva(COMPANY, hoy, hoy)
+		if linea["voucher_no"] == voucher_no
+	]
 
 
-class TestRegistroFiscal(FrappeTestCase):
+class TestLibroIVA(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
@@ -225,7 +210,7 @@ class TestRegistroFiscal(FrappeTestCase):
 		self.assertEqual(fila.tipo_impositivo, 21)
 		self.assertEqual(fila.cuota, 21)
 		self.assertEqual(fila.clave_iva, CLAVE_SUJETA)
-		self.assertEqual(fila.sin_clasificar, 0)
+		self.assertFalse(fila.sin_clasificar)
 		self.assertEqual(fila.tipo_factura, "F1")
 		self.assertEqual(fila.nif, "B12345674")
 		self.assertEqual(fila.pais, "ES")
@@ -235,7 +220,7 @@ class TestRegistroFiscal(FrappeTestCase):
 		inv.submit()
 		filas = _registros(inv.name)
 		self.assertEqual(len(filas), 1)
-		self.assertEqual(filas[0].sin_clasificar, 1)
+		self.assertTrue(filas[0].sin_clasificar)
 		self.assertEqual(filas[0].cuota, 21)
 
 	def test_exigir_clasificacion_bloquea_al_validar_y_no_el_borrador(self):
@@ -246,7 +231,7 @@ class TestRegistroFiscal(FrappeTestCase):
 			borrador.submit()
 		borrador.reload()
 		self.assertEqual(borrador.docstatus, 0)
-		self.assertFalse(frappe.db.exists("Registro Fiscal IVA", {"voucher_no": borrador.name}))
+		self.assertEqual(_registros(borrador.name), [])
 
 	def test_bien_de_inversion_aplica_prorrata(self):
 		frappe.db.set_value("Company", COMPANY, "prorrata_general", 50)
@@ -271,12 +256,12 @@ class TestRegistroFiscal(FrappeTestCase):
 		fila = _registros(con_clave.name)[0]
 		self.assertEqual(fila.tipo_impuesto, TIPO_IGIC)
 		self.assertEqual(fila.clave_iva, CLAVE_SUJETA)
-		self.assertEqual(fila.sin_clasificar, 0)
+		self.assertFalse(fila.sin_clasificar)
 		self.assertEqual(fila.cuota, 7)
 
 		sin_clave = self._venta([self._impuesto(tipo_impuesto=TIPO_IGIC, rate=7, description="IGIC")])
 		sin_clave.submit()
-		self.assertEqual(_registros(sin_clave.name)[0].sin_clasificar, 1)
+		self.assertTrue(_registros(sin_clave.name)[0].sin_clasificar)
 		self.assertFalse(_registros(sin_clave.name)[0].clave_iva)
 
 	def test_compra_prorrata_y_retencion(self):
@@ -324,19 +309,14 @@ class TestRegistroFiscal(FrappeTestCase):
 		self.assertEqual(filas[0].base_imponible, -100)
 		self.assertEqual(filas[0].cuota, -21)
 
-	def test_cancelar_anula_el_registro(self):
+	def test_cancelar_saca_la_factura_del_libro(self):
 		inv = self._venta([self._impuesto(tipo_impuesto=TIPO_IVA, clave_iva=CLAVE_SUJETA)])
 		inv.submit()
 		self.assertEqual(len(_registros(inv.name)), 1)
 		inv.cancel()
 		self.assertEqual(_registros(inv.name), [])
-		self.assertTrue(
-			frappe.db.get_value(
-				"Registro Fiscal IVA", {"voucher_no": inv.name}, "anulado"
-			)
-		)
 
-	def test_copia_de_la_plantilla_y_reconstruccion(self):
+	def test_copia_de_la_plantilla_y_el_libro_refleja_la_fila(self):
 		plantilla = frappe.get_doc(
 			{
 				"doctype": "Sales Taxes and Charges Template",
@@ -369,21 +349,14 @@ class TestRegistroFiscal(FrappeTestCase):
 		self.assertEqual(inv.taxes[0].clave_iva, CLAVE_SUJETA)
 		inv.submit()
 
+		self.assertEqual(_registros(inv.name)[0].clave_iva, CLAVE_SUJETA)
+
+		# Sin registro aparte: lo que diga la fila es lo que sale en el libro.
 		frappe.db.set_value("Sales Taxes and Charges", inv.taxes[0].name, "clave_iva", None)
 		frappe.db.set_value("Sales Taxes and Charges", inv.taxes[0].name, "tipo_impuesto", None)
-		for nombre in frappe.get_all("Registro Fiscal IVA", filters={"voucher_no": inv.name}, pluck="name"):
-			frappe.delete_doc("Registro Fiscal IVA", nombre, force=True)
-
-		previa = reconstruir(COMPANY, dry_run=True)
-		self.assertGreaterEqual(previa["filas"], 1)
-		self.assertEqual(frappe.db.count("Registro Fiscal IVA", {"voucher_no": inv.name}), 0)
-
-		reconstruir(COMPANY, dry_run=False)
 		filas = _registros(inv.name)
-		self.assertEqual(filas[0].clave_iva, CLAVE_SUJETA)
-		self.assertEqual(filas[0].sin_clasificar, 0)
-		sincronizar(inv)
-		self.assertEqual(len(_registros(inv.name)), 1)
+		self.assertEqual(len(filas), 1)
+		self.assertTrue(filas[0].sin_clasificar)
 
 	def test_clave_del_articulo_sustituye_a_la_fila(self):
 		plantilla_item = frappe.get_doc(
@@ -406,12 +379,6 @@ class TestRegistroFiscal(FrappeTestCase):
 		self.assertEqual(filas[0].tipo_impositivo, 0)
 		self.assertEqual(filas[0].base_imponible, 100)
 		self.assertEqual(filas[0].cuota, 0)
-
-	def test_fuera_de_espana_no_registra(self):
-		frappe.db.set_value("Company", COMPANY, {"country": "France", "pgc_espanol": 0})
-		inv = self._venta([self._impuesto(tipo_impuesto=TIPO_IVA, clave_iva=CLAVE_SUJETA)])
-		inv.submit()
-		self.assertFalse(frappe.db.exists("Registro Fiscal IVA", {"voucher_no": inv.name}))
 
 	def test_cargo_que_no_es_impuesto_no_genera_fila(self):
 		ingreso = frappe.db.get_value("Company", COMPANY, "default_income_account")

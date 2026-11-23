@@ -16,7 +16,7 @@
     <p class="text-p-sm text-ink-gray-5">
       {{
         __(
-          'Borrador calculado desde el registro fiscal. No sustituye al modelo 303 presentado ante la AEAT.',
+          'Borrador calculado desde los apuntes de IVA del mayor. No sustituye al modelo 303 presentado ante la AEAT.',
         )
       }}
     </p>

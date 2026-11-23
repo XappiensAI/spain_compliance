@@ -3,6 +3,7 @@
     v-if="avisos.length"
     theme="yellow"
     :title="
+      titulo ||
       __('{0} cuentas fuera del cuadro del PGC o sin número', avisos.length)
     "
   >
@@ -30,6 +31,7 @@ const LIMITE = 8
 
 const props = defineProps({
   avisos: { type: Array, default: () => [] },
+  titulo: { type: String, default: '' },
 })
 
 const todos = ref(false)

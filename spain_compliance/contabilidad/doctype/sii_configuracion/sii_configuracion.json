@@ -1,0 +1,181 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "Contabilidad",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "row_format": "Dynamic",
+ "states": [],
+ "name": "SII Configuracion",
+ "autoname": "field:company",
+ "naming_rule": "By fieldname",
+ "allow_rename": 0,
+ "track_changes": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 0,
+   "email": 0,
+   "share": 0
+  },
+  {
+   "role": "Accounts User",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "field_order": [
+  "company",
+  "activo",
+  "entorno",
+  "fecha_inicio",
+  "column_break_1",
+  "envio_automatico",
+  "incluir_recibidas",
+  "certificado",
+  "certificado_sello",
+  "section_datos",
+  "nombre_titular",
+  "nif_titular",
+  "column_break_2",
+  "tipo_operacion_extranjero",
+  "descripcion_operacion",
+  "tamano_lote"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Compañía",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "activo",
+   "fieldtype": "Check",
+   "label": "Activo",
+   "default": "0",
+   "in_list_view": 1,
+   "description": "Crea un registro SII al validar cada factura desde la fecha de inicio."
+  },
+  {
+   "fieldname": "entorno",
+   "fieldtype": "Select",
+   "label": "Entorno",
+   "options": "Pruebas\nProducción",
+   "default": "Pruebas",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Pruebas no tiene efectos fiscales. Al pasar a Producción, lo aceptado en Pruebas vuelve a Pendiente."
+  },
+  {
+   "fieldname": "fecha_inicio",
+   "fieldtype": "Date",
+   "label": "Fecha de inicio",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Solo se comunican las facturas con fecha contable igual o posterior. Las anteriores se pueden consultar en la AEAT."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "envio_automatico",
+   "fieldtype": "Check",
+   "label": "Envío automático",
+   "default": "0",
+   "description": "Cada 15 minutos se envían los registros pendientes."
+  },
+  {
+   "fieldname": "incluir_recibidas",
+   "fieldtype": "Check",
+   "label": "Comunicar facturas recibidas",
+   "default": "1"
+  },
+  {
+   "fieldname": "certificado",
+   "fieldtype": "Link",
+   "label": "Certificado",
+   "options": "Certificado Digital",
+   "description": "Vacío = el certificado vigente de la compañía con uso SII (primero el predeterminado)."
+  },
+  {
+   "fieldname": "certificado_sello",
+   "fieldtype": "Check",
+   "label": "Certificado de sello",
+   "default": "0",
+   "description": "Marcar si el certificado es de sello electrónico (usa los servidores www10 de la AEAT)."
+  },
+  {
+   "fieldname": "section_datos",
+   "fieldtype": "Section Break",
+   "label": "Datos de la comunicación"
+  },
+  {
+   "fieldname": "nombre_titular",
+   "fieldtype": "Data",
+   "label": "Nombre del titular",
+   "description": "Razón social que se envía en la cabecera. Vacío = nombre de la compañía."
+  },
+  {
+   "fieldname": "nif_titular",
+   "fieldtype": "Data",
+   "label": "NIF del titular",
+   "description": "Vacío = NIF (tax_id) de la compañía."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tipo_operacion_extranjero",
+   "fieldtype": "Select",
+   "label": "Tipo de operación con extranjeros",
+   "options": "Automático\nEntrega\nPrestación de servicios",
+   "default": "Automático",
+   "description": "Para el desglose por tipo de operación con clientes extranjeros. Automático = Entrega si la mayor parte del importe son artículos de stock."
+  },
+  {
+   "fieldname": "descripcion_operacion",
+   "fieldtype": "Data",
+   "label": "Descripción por defecto",
+   "description": "Si la factura no tiene artículos con nombre. Por defecto «Venta de bienes y servicios» / «Compra de bienes y servicios»."
+  },
+  {
+   "fieldname": "tamano_lote",
+   "fieldtype": "Int",
+   "label": "Facturas por envío",
+   "default": "200",
+   "description": "Máximo 10.000 por envío según la AEAT."
+  }
+ ]
+}

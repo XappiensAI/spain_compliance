@@ -8,30 +8,38 @@ from datetime import date, timedelta
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Coalesce, Count, Date, Sum
-from frappe.utils import add_months, get_first_day, getdate, today
+from frappe.utils import add_months, flt, get_first_day, getdate, today
 
 from spain_compliance.api.permission import has_app_permission
+from spain_compliance.finanzas import tesoreria
 
 _ALLOWED_TOTAL_DOCTYPES = frozenset({"Sales Invoice", "Purchase Invoice"})
-_ALLOWED_AGGREGATE_DOCTYPES = frozenset({"Sales Invoice", "Purchase Invoice", "Payment Entry"})
-_ALLOWED_AMOUNT_FIELDS = frozenset({"grand_total", "paid_amount", "outstanding_amount"})
+_ALLOWED_AGGREGATE_DOCTYPES = frozenset({"Sales Invoice", "Purchase Invoice"})
+_ALLOWED_AMOUNT_FIELDS = frozenset({"base_grand_total"})
 
 
 def _periods() -> dict[str, str]:
 	return {
 		"this_month": _("Este mes"),
 		"this_quarter": _("Este trimestre"),
-		"this_year": _("Este año"),
+		"this_year": _("Este ejercicio"),
 	}
 
 
-def _period_start(period: str) -> date:
+def _period_start(period: str, company: str | None = None) -> date:
 	today_date = getdate(today())
 	if period == "this_month":
 		return getdate(get_first_day(today_date))
 	if period == "this_quarter":
 		quarter = (today_date.month - 1) // 3
 		return date(today_date.year, quarter * 3 + 1, 1)
+	if company:
+		from erpnext.accounts.utils import get_fiscal_year
+
+		try:
+			return getdate(get_fiscal_year(today_date, company=company, verbose=0)[1])
+		except frappe.ValidationError:
+			pass
 	return date(today_date.year, 1, 1)
 
 
@@ -39,6 +47,16 @@ def _default_company() -> str | None:
 	return frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
 		"Global Defaults", "default_company"
 	)
+
+
+def _resolve_company(company: str | None) -> str | None:
+	if not company:
+		return _default_company()
+	if not frappe.db.exists("Company", company):
+		frappe.throw(_("Compañía no válida"))
+	if not frappe.has_permission("Company", "read", company):
+		frappe.throw(_("No tiene permiso para esta compañía"), frappe.PermissionError)
+	return company
 
 
 def _currency(company: str | None) -> str:
@@ -61,12 +79,13 @@ def _invoice_totals(doctype: str, company: str | None, start: date, end: date) -
 	if doctype not in _ALLOWED_TOTAL_DOCTYPES:
 		frappe.throw(_("Invalid doctype"))
 
+	# Importes en moneda de la compañía: el pendiente de ERPNext va en la moneda de la factura.
 	Doc = frappe.qb.DocType(doctype)
 	query = (
 		frappe.qb.from_(Doc)
 		.select(
-			Coalesce(Sum(Doc.grand_total), 0).as_("billed"),
-			Coalesce(Sum(Doc.outstanding_amount), 0).as_("outstanding_in_period"),
+			Coalesce(Sum(Doc.base_grand_total), 0).as_("billed"),
+			Coalesce(Sum(Doc.outstanding_amount * Doc.conversion_rate), 0).as_("outstanding_in_period"),
 			Count("*").as_("count"),
 		)
 		.where(Doc.docstatus == 1)
@@ -79,7 +98,7 @@ def _invoice_totals(doctype: str, company: str | None, start: date, end: date) -
 	open_query = (
 		frappe.qb.from_(Doc)
 		.select(
-			Coalesce(Sum(Doc.outstanding_amount), 0).as_("outstanding"),
+			Coalesce(Sum(Doc.outstanding_amount * Doc.conversion_rate), 0).as_("outstanding"),
 			Count("*").as_("count"),
 		)
 		.where(Doc.docstatus == 1)
@@ -118,15 +137,16 @@ def _recent_invoices(doctype: str, company: str | None, party_field: str, limit:
 		"name",
 		party_field,
 		"posting_date",
-		"grand_total",
+		"base_grand_total",
 		"outstanding_amount",
+		"conversion_rate",
 		"status",
 	]
 	filters = {"docstatus": ["<", 2]}
 	if company:
 		filters["company"] = company
 
-	return frappe.get_list(
+	rows = frappe.get_list(
 		doctype,
 		filters=filters,
 		fields=fields,
@@ -134,6 +154,10 @@ def _recent_invoices(doctype: str, company: str | None, party_field: str, limit:
 		limit_page_length=limit,
 		ignore_permissions=False,
 	)
+	for row in rows:
+		row.grand_total = flt(row.pop("base_grand_total"))
+		row.outstanding_amount = flt(row.outstanding_amount) * flt(row.pop("conversion_rate") or 1)
+	return rows
 
 
 def _month_buckets(start: date, end: date) -> list[date]:
@@ -201,47 +225,17 @@ def _aggregate_doctype(
 
 
 def _cashflow_series(company: str | None, start: date, end: date, period: str) -> list[dict]:
-	"""Books-like cashflow: Payment Entry Receive/Pay, else Sales/Purchase billed."""
+	"""Entradas y salidas reales de caja y bancos (contabilidad), sin traspasos internos."""
 	grain = "day" if period == "this_month" else "month"
 	buckets = _day_buckets(start, end) if grain == "day" else _month_buckets(start, end)
-
-	can_pe = frappe.has_permission("Payment Entry", "read")
-	can_si = frappe.has_permission("Sales Invoice", "read")
-	can_pi = frappe.has_permission("Purchase Invoice", "read")
-
-	inflow_map: dict[str, float] = {}
-	outflow_map: dict[str, float] = {}
-
-	if can_pe:
-		inflow_map = _aggregate_doctype(
-			"Payment Entry",
-			"paid_amount",
-			company,
-			start,
-			end,
-			grain,
-			extra_filters={"payment_type": "Receive"},
-		)
-		outflow_map = _aggregate_doctype(
-			"Payment Entry",
-			"paid_amount",
-			company,
-			start,
-			end,
-			grain,
-			extra_filters={"payment_type": "Pay"},
-		)
-
-	if can_si and (not inflow_map or sum(inflow_map.values()) == 0):
-		inflow_map = _aggregate_doctype("Sales Invoice", "grand_total", company, start, end, grain)
-	if can_pi and (not outflow_map or sum(outflow_map.values()) == 0):
-		outflow_map = _aggregate_doctype("Purchase Invoice", "grand_total", company, start, end, grain)
-
+	movimientos = {}
+	if company and frappe.has_permission("GL Entry", "read"):
+		movimientos = {row.fecha: row for row in tesoreria.movimientos_tesoreria(company, start, end, grain)}
 	return [
 		{
 			"date": bucket.strftime("%Y-%m-%d"),
-			"entradas": inflow_map.get(bucket.strftime("%Y-%m-%d"), 0.0),
-			"salidas": outflow_map.get(bucket.strftime("%Y-%m-%d"), 0.0),
+			"entradas": flt((movimientos.get(bucket.strftime("%Y-%m-%d")) or {}).get("entradas")),
+			"salidas": flt((movimientos.get(bucket.strftime("%Y-%m-%d")) or {}).get("salidas")),
 		}
 		for bucket in buckets
 	]
@@ -252,12 +246,12 @@ def _billing_series(company: str | None, start: date, end: date, period: str) ->
 	buckets = _day_buckets(start, end) if grain == "day" else _month_buckets(start, end)
 
 	sales = (
-		_aggregate_doctype("Sales Invoice", "grand_total", company, start, end, grain)
+		_aggregate_doctype("Sales Invoice", "base_grand_total", company, start, end, grain)
 		if frappe.has_permission("Sales Invoice", "read")
 		else {}
 	)
 	purchases = (
-		_aggregate_doctype("Purchase Invoice", "grand_total", company, start, end, grain)
+		_aggregate_doctype("Purchase Invoice", "base_grand_total", company, start, end, grain)
 		if frappe.has_permission("Purchase Invoice", "read")
 		else {}
 	)
@@ -286,7 +280,7 @@ def _receivable_mix(receivable: dict) -> list[dict]:
 
 
 @frappe.whitelist()
-def get_tablero(period: str = "this_year") -> dict:
+def get_tablero(period: str = "this_year", company: str | None = None) -> dict:
 	"""Accounting board metrics for Contabilidad SPA (Books-like dashboard)."""
 	if frappe.session.user == "Guest" or not has_app_permission():
 		frappe.throw(_("No permission"), frappe.PermissionError)
@@ -295,9 +289,9 @@ def get_tablero(period: str = "this_year") -> dict:
 	if period not in periods:
 		period = "this_year"
 
-	start = _period_start(period)
+	company = _resolve_company(company)
+	start = _period_start(period, company)
 	end = getdate(today())
-	company = _default_company()
 
 	receivable = (
 		_invoice_totals("Sales Invoice", company, start, end)
@@ -316,9 +310,17 @@ def get_tablero(period: str = "this_year") -> dict:
 		else {"count": 0, "draft": 0}
 	)
 
+	cuentas = (
+		tesoreria.saldos_tesoreria(company, end)
+		if company and frappe.has_permission("GL Entry", "read")
+		else []
+	)
+
 	return {
 		"period": period,
 		"period_label": periods[period],
+		"treasury": round(sum(c["saldo"] for c in cuentas), 2),
+		"treasury_accounts": len(cuentas),
 		"from_date": str(start),
 		"to_date": str(end),
 		"company": company,

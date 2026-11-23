@@ -5,7 +5,8 @@
 
 El balance, la cuenta de pérdidas y ganancias y las sumas y saldos se calculan
 sobre el GL con la estructura del PGC (``spain_compliance.contabilidad.cuentas_anuales``).
-El libro de IVA y la liquidación salen de ``Registro Fiscal IVA``.
+El libro de IVA y la liquidación se calculan sobre el mayor
+(``spain_compliance.contabilidad.libro_iva``), sin registro aparte.
 El libro diario, el libro mayor y el plan de cuentas se consultan aquí,
 sin el informe de Desk.
 """
@@ -154,70 +155,58 @@ def _ejercicios(company: str) -> list[dict]:
 	]
 
 
-def _registro():
-	if not frappe.has_permission("Registro Fiscal IVA", "read"):
+def _exigir_libro_iva():
+	if not frappe.has_permission("GL Entry", "read"):
 		frappe.throw(_("No tiene permiso para el libro de IVA"), frappe.PermissionError)
-	return frappe.qb.DocType("Registro Fiscal IVA")
 
 
-def _filtros_libro(company, libro, inicio, fin, incluir_anulados):
-	Doc = _registro()
-	query_filters = (Doc.company == company) & (Doc.fecha >= inicio) & (Doc.fecha <= fin)
-	if libro:
-		if libro not in _LIBROS:
-			frappe.throw(_("Libro no válido"))
-		query_filters = query_filters & (Doc.libro == libro)
-	if not cint(incluir_anulados):
-		query_filters = query_filters & (Doc.anulado == 0)
-	query_filters = query_filters & Doc.tipo_impuesto.isin(_TIPOS_LIBRO_IVA)
-	return Doc, query_filters
+def _lineas_libro(company, libro, inicio, fin) -> list[dict]:
+	"""Líneas de IVA (también recargo, IGIC e IPSI) del libro, desde el mayor."""
+	from spain_compliance.contabilidad.libro_iva import movimientos_iva
+
+	_exigir_libro_iva()
+	if libro and libro not in _LIBROS:
+		frappe.throw(_("Libro no válido"))
+	lineas = movimientos_iva(company, inicio, fin, libro)
+	# Sin clasificar también cuenta: es IVA del mayor que falta por clasificar.
+	return [
+		ln
+		for ln in lineas
+		if ln["libro"] in _LIBROS
+		and (ln["tipo_impuesto"] in _TIPOS_LIBRO_IVA or not ln["tipo_impuesto"] or ln["autorrepercusion"])
+	]
 
 
-def _resumen_libro(Doc, query_filters, agrupar_clave=True):
-	totales = (
-		frappe.qb.from_(Doc)
-		.select(
-			Count("*").as_("filas"),
-			Coalesce(Sum(Doc.base_imponible), 0).as_("base"),
-			Coalesce(Sum(Doc.cuota), 0).as_("cuota"),
-			Coalesce(Sum(Doc.cuota_deducible), 0).as_("deducible"),
-		)
-		.where(query_filters)
-		.run(as_dict=True)
-	)[0]
-	por_clave = []
+def _resumen_libro(lineas: list[dict], agrupar_clave=True):
+	base = sum(flt(ln["base_imponible"]) for ln in lineas if not ln["autorrepercusion"])
+	cuota = sum(flt(ln["cuota"]) for ln in lineas if not ln["autorrepercusion"])
+	deducible = sum(flt(ln["cuota_deducible"]) for ln in lineas)
+	grupos: dict[tuple, dict] = {}
 	if agrupar_clave:
-		por_clave = (
-			frappe.qb.from_(Doc)
-			.select(
-				Doc.clave_iva,
-				Doc.libro,
-				Count("*").as_("filas"),
-				Coalesce(Sum(Doc.base_imponible), 0).as_("base"),
-				Coalesce(Sum(Doc.cuota), 0).as_("cuota"),
-				Coalesce(Sum(Doc.cuota_deducible), 0).as_("deducible"),
+		for ln in lineas:
+			if ln["autorrepercusion"]:
+				continue
+			g = grupos.setdefault(
+				(ln["libro"], ln["clave_iva"] or ""),
+				{"libro": ln["libro"], "clave": ln["clave_iva"] or _("Sin clave"), "filas": 0, "base": 0.0, "cuota": 0.0, "deducible": 0.0},
 			)
-			.where(query_filters)
-			.groupby(Doc.libro, Doc.clave_iva)
-			.orderby(Doc.libro)
-			.orderby(Doc.clave_iva)
-			.run(as_dict=True)
-		)
+			g["filas"] += 1
+			g["base"] += flt(ln["base_imponible"])
+			g["cuota"] += flt(ln["cuota"])
+			g["deducible"] += flt(ln["cuota_deducible"])
 	return {
-		"filas": int(totales.filas or 0),
-		"base": _numero(totales.base),
-		"cuota": _numero(totales.cuota),
-		"deducible": _numero(totales.deducible),
+		"filas": len(lineas),
+		"base": _numero(flt(base, 2)),
+		"cuota": _numero(flt(cuota, 2)),
+		"deducible": _numero(flt(deducible, 2)),
 		"por_clave": [
 			{
-				"libro": row.libro,
-				"clave": row.clave_iva or _("Sin clave"),
-				"filas": int(row.filas or 0),
-				"base": _numero(row.base),
-				"cuota": _numero(row.cuota),
-				"deducible": _numero(row.deducible),
+				**g,
+				"base": _numero(flt(g["base"], 2)),
+				"cuota": _numero(flt(g["cuota"], 2)),
+				"deducible": _numero(flt(g["deducible"], 2)),
 			}
-			for row in por_clave
+			for _k, g in sorted(grupos.items())
 		],
 	}
 
@@ -1098,66 +1087,33 @@ def libro_iva(
 	libro: str = "Expedidas",
 	incluir_anulados: int | str = 0,
 ) -> dict:
+	"""Libro de IVA desde el mayor. ``incluir_anulados`` se ignora: lo cancelado no está en el mayor."""
 	company = _compania(company)
 	inicio, fin = _fechas(from_date, to_date)
-	Doc, query_filters = _filtros_libro(company, libro, inicio, fin, incluir_anulados)
-	resumen = _resumen_libro(Doc, query_filters)
-	sin_clasificar = (
-		frappe.qb.from_(Doc)
-		.select(Count("*").as_("filas"))
-		.where(query_filters & (Doc.sin_clasificar == 1))
-		.run(as_dict=True)
-	)[0].filas
-
-	filas = (
-		frappe.qb.from_(Doc)
-		.select(
-			Doc.name,
-			Doc.fecha,
-			Doc.libro,
-			Doc.numero,
-			Doc.numero_externo,
-			Doc.party_name,
-			Doc.nif,
-			Doc.clave_iva,
-			Doc.tipo_impuesto,
-			Doc.base_imponible,
-			Doc.tipo_impositivo,
-			Doc.cuota,
-			Doc.cuota_deducible,
-			Doc.total_factura,
-			Doc.anulado,
-			Doc.sin_clasificar,
-			Doc.voucher_type,
-			Doc.voucher_no,
-		)
-		.where(query_filters)
-		.orderby(Doc.fecha)
-		.orderby(Doc.numero)
-		.limit(_MAX_FILAS)
-		.run(as_dict=True)
-	)
+	lineas = _lineas_libro(company, libro, inicio, fin)
+	resumen = _resumen_libro(lineas)
 	rows = [
 		{
-			"name": row.name,
-			"fecha": str(row.fecha),
-			"libro": row.libro,
-			"numero": row.numero_externo or row.numero or "",
-			"party_name": row.party_name or "",
-			"nif": row.nif or "",
-			"clave": row.clave_iva or "",
-			"tipo_impuesto": row.tipo_impuesto or "",
-			"base": _numero(row.base_imponible),
-			"tipo": _numero(row.tipo_impositivo),
-			"cuota": _numero(row.cuota),
-			"deducible": _numero(row.cuota_deducible),
-			"total": _numero(row.total_factura),
-			"anulado": bool(row.anulado),
-			"sin_clasificar": bool(row.sin_clasificar),
-			"voucher_type": row.voucher_type,
-			"voucher_no": row.voucher_no,
+			"name": f"{ln['voucher_no']}:{ln['cuenta']}",
+			"fecha": str(ln["fecha"]),
+			"libro": ln["libro"],
+			"numero": ln["numero_externo"] or ln["numero"] or "",
+			"party_name": ln["party_name"] or "",
+			"nif": ln["nif"] or "",
+			"clave": ln["clave_iva"] or "",
+			"tipo_impuesto": ln["tipo_impuesto"] or "",
+			"base": _numero(ln["base_imponible"]),
+			"tipo": _numero(ln["tipo_impositivo"]),
+			"cuota": _numero(ln["cuota"]),
+			"deducible": _numero(ln["cuota_deducible"]),
+			"total": _numero(ln["total_factura"]),
+			"anulado": False,
+			"sin_clasificar": bool(ln["sin_clasificar"]),
+			"autorrepercusion": bool(ln["autorrepercusion"]),
+			"voucher_type": ln["voucher_type"],
+			"voucher_no": ln["voucher_no"],
 		}
-		for row in filas
+		for ln in lineas[:_MAX_FILAS]
 	]
 	return {
 		"company": company,
@@ -1173,26 +1129,32 @@ def libro_iva(
 			"deducible": resumen["deducible"],
 		},
 		"por_clave": resumen["por_clave"],
-		"sin_clasificar": int(sin_clasificar or 0),
-		"truncated": resumen["filas"] > len(rows),
+		"sin_clasificar": sum(1 for ln in lineas if ln["sin_clasificar"]),
+		"truncated": len(lineas) > len(rows),
 	}
 
 
 @frappe.whitelist()
 def liquidacion_iva(company: str, from_date: str, to_date: str) -> dict:
-	"""Borrador de liquidación a partir del registro fiscal. No es el modelo 303 presentado."""
+	"""Borrador de liquidación desde el mayor. No es el modelo 303 presentado.
+
+	El IVA autorrepercutido (adquisiciones intracomunitarias, inversión del sujeto
+	pasivo) suma al devengado; su cuota soportada se deduce en recibidas.
+	"""
 	company = _compania(company)
 	inicio, fin = _fechas(from_date, to_date)
-	Doc, base = _filtros_libro(company, None, inicio, fin, incluir_anulados=0)
-	expedidas = _resumen_libro(Doc, base & (Doc.libro == "Expedidas"))
-	recibidas = _resumen_libro(Doc, base & (Doc.libro == "Recibidas"))
-	resultado = expedidas["cuota"] - recibidas["deducible"]
+	lineas = _lineas_libro(company, None, inicio, fin)
+	expedidas = _resumen_libro([ln for ln in lineas if ln["libro"] == "Expedidas"])
+	recibidas = _resumen_libro([ln for ln in lineas if ln["libro"] == "Recibidas"])
+	autorrepercutido = _numero(sum(flt(ln["cuota"]) for ln in lineas if ln["autorrepercusion"]))
+	resultado = expedidas["cuota"] + autorrepercutido - recibidas["deducible"]
 	return {
 		"company": company,
 		"currency": _moneda(company),
 		"from_date": str(inicio),
 		"to_date": str(fin),
 		"repercutido": {"base": expedidas["base"], "cuota": expedidas["cuota"], "filas": expedidas["filas"]},
+		"autorrepercutido": autorrepercutido,
 		"soportado": {
 			"base": recibidas["base"],
 			"cuota": recibidas["cuota"],

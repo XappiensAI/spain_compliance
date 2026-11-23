@@ -22,6 +22,15 @@ import LucideShieldCheck from '~icons/lucide/shield-check'
 import LucideClipboardList from '~icons/lucide/clipboard-list'
 import LucideSettings from '~icons/lucide/settings'
 import LucideContact from '~icons/lucide/contact'
+import LucideGauge from '~icons/lucide/gauge'
+import LucideHandCoins from '~icons/lucide/hand-coins'
+import LucideCalendarClock from '~icons/lucide/calendar-clock'
+import LucideChartSpline from '~icons/lucide/chart-spline'
+import LucideFactory from '~icons/lucide/factory'
+import LucideWarehouse from '~icons/lucide/warehouse'
+import LucideChartPie from '~icons/lucide/chart-pie'
+import LucideArrowLeftRight from '~icons/lucide/arrow-left-right'
+import LucideMilestone from '~icons/lucide/milestone'
 
 /**
  * Sidebar inspired by Frappe Books (src/utils/sidebarConfig.ts),
@@ -36,6 +45,53 @@ export const navigation = [
         label: 'Tablero',
         icon: markRaw(LucideLayoutDashboard),
       },
+      {
+        name: 'Indicators',
+        label: 'Indicadores de gestión',
+        icon: markRaw(LucideGauge),
+      },
+    ],
+  },
+  {
+    label: 'Tesorería',
+    collapsible: true,
+    items: [
+      {
+        name: 'Receivables',
+        label: 'Cuentas a cobrar',
+        icon: markRaw(LucideHandCoins),
+      },
+      {
+        name: 'Payables',
+        label: 'Cuentas a pagar',
+        icon: markRaw(LucideCalendarClock),
+      },
+      {
+        name: 'CashForecast',
+        label: 'Previsión de tesorería',
+        icon: markRaw(LucideChartSpline),
+      },
+    ],
+  },
+  {
+    label: 'Costes y márgenes',
+    collapsible: true,
+    items: [
+      {
+        name: 'ProductionCosts',
+        label: 'Costes de producción',
+        icon: markRaw(LucideFactory),
+      },
+      {
+        name: 'StockValuation',
+        label: 'Valoración de existencias',
+        icon: markRaw(LucideWarehouse),
+      },
+      {
+        name: 'Profitability',
+        label: 'Rentabilidad por línea',
+        icon: markRaw(LucideChartPie),
+      },
     ],
   },
   {
@@ -46,6 +102,11 @@ export const navigation = [
         name: 'SalesQuotes',
         label: 'Presupuestos',
         icon: markRaw(LucideFileText),
+      },
+      {
+        name: 'BillingMilestones',
+        label: 'Hitos de facturación',
+        icon: markRaw(LucideMilestone),
       },
       {
         name: 'SalesInvoices',
@@ -144,6 +205,11 @@ export const navigation = [
         name: 'BalanceSheet',
         label: 'Balance de situación',
         icon: markRaw(LucideScale),
+      },
+      {
+        name: 'CashFlowStatement',
+        label: 'Flujos de efectivo',
+        icon: markRaw(LucideArrowLeftRight),
       },
       {
         name: 'TrialBalance',

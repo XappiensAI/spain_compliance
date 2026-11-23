@@ -58,7 +58,11 @@
         </ListRowItem>
       </ListRow>
     </ListRows>
-    <ListSelectBanner />
+    <ListSelectBanner>
+      <template #actions="bannerProps">
+        <slot name="banner-actions" v-bind="bannerProps" />
+      </template>
+    </ListSelectBanner>
   </ListView>
 
   <!-- Empty state -->

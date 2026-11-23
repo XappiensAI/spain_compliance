@@ -23,7 +23,7 @@ from pathlib import Path
 import frappe
 
 from spain_compliance.contabilidad.pgc import CUADRO
-from spain_compliance.contabilidad.plan_contable import GRUPOS, SUBGRUPOS, es_compania_pgc
+from spain_compliance.contabilidad.plan_contable import GRUPOS, SUBGRUPOS, es_compania_pgc, root_type_pgc
 from spain_compliance.setup.custom_fields import COMPANY_PGC_FIELDNAME
 
 _META_PLANTILLA = {
@@ -99,7 +99,9 @@ def nombre_de_grupo(codigo: str) -> str:
 
 
 def root_type_de(codigo: str) -> str:
-	"""root_type nominal del grupo. Los hijos pueden llevar otro."""
+	"""root_type de la cuenta por su naturaleza PGC (``root_type_pgc``); si no la tiene, el nominal del grupo."""
+	if root := root_type_pgc(codigo):
+		return root
 	if codigo in GRUPOS:
 		return GRUPOS[codigo][1]
 	sub = codigo[:2]
@@ -288,7 +290,9 @@ def _renombrar(company: str, item: dict, abbr: str) -> str:
 		frappe.db.set_value("Account", actual, "account_name", canon, update_modified=False)
 	if actual == nuevo:
 		return actual
-	if frappe.db.exists("Account", nuevo):
+	# MariaDB compara sin distinguir mayúsculas: si solo cambian mayúsculas, la «existente» es la propia cuenta
+	existente = frappe.db.exists("Account", nuevo)
+	if existente and existente != actual:
 		frappe.throw(f"Ya existe la cuenta {nuevo}; no se renombra {numero} para no fusionar saldos")
 	from frappe.model.rename_doc import rename_doc
 
@@ -386,6 +390,40 @@ def alinear_companias_pgc(aplicar: bool = True) -> list[dict]:
 # Plantilla -----------------------------------------------------------------
 
 
+def corregir_tipos_raiz(company: str, aplicar: bool = False) -> dict:
+	"""Pone a cada cuenta numerada de una compañía PGC el root_type de su naturaleza (``root_type_pgc``).
+
+	Para compañías montadas con la plantilla anterior, que tenía mal los grupos mixtos (470–473 como pasivo,
+	438 como activo…). Con ``aplicar=False`` solo lista lo que cambiaría. No toca asientos: cambia en qué lado
+	del balance sale la cuenta en los informes de Desk.
+
+	    bench --site <sitio> execute spain_compliance.contabilidad.arbol_pgc.corregir_tipos_raiz \
+	        --kwargs "{'company': 'Mi Empresa S.L.', 'aplicar': 0}"
+	"""
+	if not es_compania_pgc(company):
+		return {"company": company, "omitida": True}
+	cambios = []
+	for cuenta in frappe.get_all(
+		"Account",
+		filters={"company": company, "account_number": ["is", "set"]},
+		fields=["name", "account_number", "root_type"],
+	):
+		numero = (cuenta.account_number or "").strip()
+		esperado = root_type_pgc(numero) if len(numero) > 1 else None
+		if esperado and esperado != cuenta.root_type:
+			cambios.append({"name": cuenta.name, "de": cuenta.root_type, "a": esperado})
+	if aplicar:
+		for c in cambios:
+			frappe.db.set_value(
+				"Account",
+				c["name"],
+				{"root_type": c["a"], "report_type": "Profit and Loss" if c["a"] in ("Income", "Expense") else "Balance Sheet"},
+				update_modified=False,
+			)
+		frappe.clear_cache(doctype="Account")
+	return {"company": company, "cambios": len(cambios), "aplicado": bool(aplicar), "detalle": cambios[:200]}
+
+
 def _hijos_plantilla(nodo: dict) -> dict:
 	return {k: v for k, v in nodo.items() if k not in _META_PLANTILLA and isinstance(v, dict)}
 
@@ -442,10 +480,8 @@ def plantilla_coherente(data: dict) -> dict:
 			entrada = construir(numero)
 			entrada.update(nodo["extra"])
 			entrada["account_number"] = numero
-			if nodo.get("root_type"):
-				entrada["root_type"] = nodo["root_type"]
-			else:
-				entrada["root_type"] = root_type_de(numero)
+			# La naturaleza PGC manda; lo que traiga el nodo solo vale para números fuera de la tabla
+			entrada["root_type"] = root_type_pgc(numero) or nodo.get("root_type") or root_type_de(numero)
 			entrada["is_group"] = 1 if _hijos_plantilla(entrada) or nodo.get("is_group") else 0
 			arbol[clave] = entrada
 		return arbol
@@ -479,6 +515,9 @@ def auditar_plantilla(data: dict) -> list[str]:
 				problemas.append(f"{numero} se llama {clave}")
 			if _hijos_plantilla(hijo) and hijo.get("is_group") != 1:
 				problemas.append(f"{numero} tiene hijos y no es grupo")
+			esperado_root = root_type_pgc(numero)
+			if esperado_root and hijo.get("root_type") != esperado_root:
+				problemas.append(f"{numero} es {hijo.get('root_type')} y por el PGC es {esperado_root}")
 			walk(hijo, numero)
 		if len(claves) != len(set(claves)):
 			problemas.append(f"nombres repetidos bajo {padre or 'raíz'}")

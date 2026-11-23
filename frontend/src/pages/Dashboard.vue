@@ -222,13 +222,18 @@ import LucideLayers from '~icons/lucide/layers'
 import LucideTrendingUp from '~icons/lucide/trending-up'
 import LucideScale from '~icons/lucide/scale'
 import LucideBookMarked from '~icons/lucide/book-marked'
+import LucideLandmark from '~icons/lucide/landmark'
+import LucideGauge from '~icons/lucide/gauge'
+import LucideChartSpline from '~icons/lucide/chart-spline'
+import LucideArrowLeftRight from '~icons/lucide/arrow-left-right'
+import LucideFactory from '~icons/lucide/factory'
 
 const period = ref('this_year')
 
 const periodButtons = [
   { label: __('Este mes'), value: 'this_month' },
   { label: __('Trimestre'), value: 'this_quarter' },
-  { label: __('Este año'), value: 'this_year' },
+  { label: __('Este ejercicio'), value: 'this_year' },
 ]
 
 const tablero = createResource({
@@ -367,7 +372,7 @@ const kpis = computed(() => {
       value: money(d.receivable.outstanding, cur),
       hint: __('{0} facturas abiertas', d.receivable.count || 0),
       icon: markRaw(LucideBanknote),
-      route: 'SalesInvoices',
+      route: 'Receivables',
     },
     {
       key: 'payable',
@@ -375,7 +380,7 @@ const kpis = computed(() => {
       value: money(d.payable.outstanding, cur),
       hint: __('{0} facturas abiertas', d.payable.count || 0),
       icon: markRaw(LucideShoppingCart),
-      route: 'PurchaseInvoices',
+      route: 'Payables',
     },
     {
       key: 'billed',
@@ -386,17 +391,40 @@ const kpis = computed(() => {
       route: 'SalesInvoices',
     },
     {
-      key: 'journals',
-      label: 'Asientos (periodo)',
-      value: String(d.journal_entries.count || 0),
-      hint: __('{0} en borrador', d.journal_entries.draft || 0),
-      icon: markRaw(LucideBookOpen),
-      route: 'JournalEntries',
+      key: 'treasury',
+      label: 'Tesorería',
+      value: money(d.treasury, cur),
+      hint: __(
+        '{0} cuentas de bancos y caja · ver previsión',
+        d.treasury_accounts || 0,
+      ),
+      icon: markRaw(LucideLandmark),
+      route: 'CashForecast',
     },
   ]
 })
 
 const shortcuts = [
+  {
+    name: 'Indicators',
+    label: 'Indicadores de gestión',
+    icon: markRaw(LucideGauge),
+  },
+  {
+    name: 'CashForecast',
+    label: 'Previsión de tesorería',
+    icon: markRaw(LucideChartSpline),
+  },
+  {
+    name: 'CashFlowStatement',
+    label: 'Flujos de efectivo',
+    icon: markRaw(LucideArrowLeftRight),
+  },
+  {
+    name: 'ProductionCosts',
+    label: 'Costes de producción',
+    icon: markRaw(LucideFactory),
+  },
   {
     name: 'JournalEntries',
     label: 'Asientos',

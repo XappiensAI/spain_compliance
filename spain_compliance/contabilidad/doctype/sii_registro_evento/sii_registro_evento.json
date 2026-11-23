@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 10:00:00.000000",
+ "modified": "2026-11-12 10:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "module": "Contabilidad",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "row_format": "Dynamic",
+ "states": [],
+ "name": "SII Registro Evento",
+ "istable": 1,
+ "editable_grid": 0,
+ "track_changes": 0,
+ "permissions": [],
+ "field_order": [
+  "fecha",
+  "accion",
+  "entorno",
+  "resultado",
+  "csv",
+  "codigo",
+  "mensaje",
+  "usuario"
+ ],
+ "fields": [
+  {
+   "fieldname": "fecha",
+   "fieldtype": "Datetime",
+   "label": "Fecha",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "accion",
+   "fieldtype": "Data",
+   "label": "Acción",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "entorno",
+   "fieldtype": "Data",
+   "label": "Entorno",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "resultado",
+   "fieldtype": "Data",
+   "label": "Resultado",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "csv",
+   "fieldtype": "Data",
+   "label": "CSV"
+  },
+  {
+   "fieldname": "codigo",
+   "fieldtype": "Data",
+   "label": "Código"
+  },
+  {
+   "fieldname": "mensaje",
+   "fieldtype": "Small Text",
+   "label": "Mensaje",
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "usuario",
+   "fieldtype": "Link",
+   "label": "Usuario",
+   "options": "User"
+  }
+ ]
+}

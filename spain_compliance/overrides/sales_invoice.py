@@ -94,9 +94,12 @@ def apply_return_naming_series(doc) -> None:
 
 
 def on_before_naming(doc, method=None):
-	"""doc_events: credit-note series + company_abbr before the name is assigned."""
+	"""doc_events: company series, credit-note series and company_abbr before naming."""
+	from spain_compliance.contabilidad.series import aplicar_serie
+
 	ensure_company_abbr(doc)
 	apply_return_naming_series(doc)
+	aplicar_serie(doc)
 
 
 def on_validate_correlatividad(doc, method=None):

@@ -3250,24 +3250,24 @@
      "Clientes, otras partes vinculadas": {
       "account_type": "Receivable",
       "account_number": "4370",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_type": "Receivable",
      "account_number": "437",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Anticipos de clientes": {
      "Envases y embalajes a devolver por clientes": {
       "account_type": "Receivable",
       "account_number": "4380",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_type": "Receivable",
      "account_number": "438",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "account_type": "Receivable",
@@ -3459,12 +3459,12 @@
      "Anticipos de remuneraciones": {
       "account_type": "Receivable",
       "account_number": "4600",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 0
      },
      "account_type": "Receivable",
      "account_number": "460",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Entregas para gastos a justificar": {
@@ -3512,155 +3512,155 @@
      "Activos por diferencias temporarias deducibles": {
       "Activos por diferencias temporarias deducibles": {
        "account_number": "47000",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4700",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Crédito por pérdidas a compensar del ejercicio": {
       "Crédito por pérdidas a compensar del ejercicio": {
        "account_number": "47010",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4701",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Derechos por deducciones y bonificaciones pendientes de aplicar": {
       "Derechos por deducciones y bonificaciones pendientes de aplicar": {
        "account_number": "47020",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4702",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "account_number": "470",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Organismos de la Seguridad Social, deudores": {
      "Hacienda Pública. IVA repercutido": {
       "account_number": "4710",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 0
      },
      "account_number": "471",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Hacienda Pública, IVA soportado": {
      "Hacienda Pública. IVA soportado": {
       "account_number": "4720",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 0
      },
      "account_number": "472",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Hacienda Pública, retenciones y pagos a cuenta": {
      "Hacienda Pública, acreedora por IVA": {
       "Hacienda Pública, acreedora por IVA": {
        "account_number": "47300",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4730",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, acreedora por impuesto sobre sociedades": {
       "Hacienda Pública, acreedora por impuesto sobre sociedades": {
        "account_number": "47310",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4731",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, acreedora por retenciones practicadas": {
       "Hacienda Pública, acreedora por retenciones practicadas": {
        "account_number": "47320",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4732",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, acreedora por subvenciones a reintegrar": {
       "Hacienda Pública, acreedora por subvenciones a reintegrar": {
        "account_number": "47330",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4733",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, acreedora por subvenciones recibidas en concepto de entidad colaboradora (art.12 Ley de Subvenciones)": {
       "Hacienda Pública, acreedora por subvenciones recibidas en concepto de entidad colaboradora (art.12 Ley de Subvencioens)": {
        "account_number": "47340",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4734",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "account_number": "473",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Activos por impuesto diferido": {
      "Hacienda Pública, deudora por IVA": {
       "Hacienda Pública, deudora por IVA": {
        "account_number": "47400",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4740",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, deudora por colaboración en la entrega y distribución de subvenciones (art.12 Ley de Subvenciones)": {
       "Hacienda Pública, deudora por colaboración en la entrega y distribución de subvenciones (art.12 Ley de Subvenciones)": {
        "account_number": "47410",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4741",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, deudora por devolución de impuestos": {
       "Hacienda Pública, deudora por devolución de impuestos": {
        "account_number": "47420",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4742",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "Hacienda Pública, deudora por subvenciones concedidas": {
       "Hacienda Pública, deudora por subvenciones concedidas": {
        "account_number": "47430",
-       "root_type": "Liability",
+       "root_type": "Asset",
        "is_group": 0
       },
       "account_number": "4743",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 1
      },
      "account_number": "474",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "Hacienda Pública, acreedora por conceptos fiscales": {
@@ -3696,15 +3696,15 @@
     "Pasivos por diferencias temporarias imponibles": {
      "Pasivos por diferencias temporarias imponibles": {
       "account_number": "4780",
-      "root_type": "Liability",
+      "root_type": "Asset",
       "is_group": 0
      },
      "account_number": "478",
-     "root_type": "Liability",
+     "root_type": "Asset",
      "is_group": 1
     },
     "account_number": "47",
-    "root_type": "Liability",
+    "root_type": "Asset",
     "is_group": 1
    },
    "Ajustes por periodificación": {
@@ -3830,105 +3830,105 @@
     "Obligaciones y bonos a corto plazo": {
      "Acreedores comerciales y otras cuentas a pagar": {
       "account_number": "5000",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "500",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Obligaciones y bonos convertibles a corto plazo": {
      "Deudas con características especiales": {
       "account_number": "5010",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "501",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Acciones o participaciones a corto plazo consideradas como pasivos financieros": {
      "Deudas con personas y entidades vinculadas": {
       "account_number": "5020",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "502",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Existencias, deudores comerciales y otras cuentas a cobrar": {
      "Existencias, deudores comerciales y otras cuentas a cobrar": {
       "account_number": "5030",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "503",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Inmovilizado": {
      "Inmovilizado": {
       "account_number": "5040",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "504",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Deudas representadas en otros valores negociables a corto plazo": {
      "Inversiones con personas y entidades vinculadas": {
       "account_number": "5050",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "505",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Intereses a corto plazo de empréstitos y otras emisiones análogas": {
      "Inversiones financieras": {
       "account_number": "5060",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "506",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Dividendos de acciones o participaciones consideradas como pasivos financieros": {
      "Otros activos": {
       "account_number": "5070",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "507",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Otros pasivos": {
      "Otros pasivos": {
       "account_number": "5080",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "508",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Valores negociables amortizados": {
      "Provisiones": {
       "account_number": "5090",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "509",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "account_number": "50",
-    "root_type": "Asset",
+    "root_type": "Liability",
     "is_group": 1
    },
    "Deudas a corto plazo con partes vinculadas": {
@@ -3936,45 +3936,45 @@
      "Deterioro de valor de inmovilizado no corriente mantenido para la venta": {
       "Deterioro de valor de inmovilizado no corriente mantenido para la venta": {
        "account_number": "51000",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5100",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de inversiones financieras no corrientes mantenidas para la venta": {
       "Deterioro de valor de inversiones financieras no corrientes mantenidas para la venta": {
        "account_number": "51010",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5101",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de inversiones y entidades vinculadas no corrientes mantenidas para la venta": {
       "Deterioro de valor de inversiones y entidades vinculadas no corrientes mantenidas para la venta": {
        "account_number": "51020",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5102",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de otros activos mantenidos para la venta": {
       "Deterioro de valor de otros activos mantenidos para la venta": {
        "account_number": "51030",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5103",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "510",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Proveedores de inmovilizado a corto plazo, partes vinculadas": {
@@ -4015,7 +4015,7 @@
        "is_group": 1
       },
       "account_number": "5110",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Proveedores de inmovilizado a corto plazo, partes vinculadas": {
@@ -4054,132 +4054,132 @@
       "is_group": 1
      },
      "account_number": "511",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Acreedores por arrendamiento financiero a corto plazo, partes vinculadas": {
      "Deterioro de valor de créditos a corto plazo a empresas asociadas": {
       "Deterioro de valor de créditos a corto plazo a empresas asociadas": {
        "account_number": "51200",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5120",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de créditos a corto plazo a empresas del grupo": {
       "Deterioro de valor de créditos a corto plazo a empresas del grupo": {
        "account_number": "51210",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5121",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de créditos a corto plazo a otras partes vinculadas": {
       "Deterioro de valor de créditos a corto plazo a otras partes vinculadas": {
        "account_number": "51220",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5122",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "512",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Otras deudas a corto plazo con partes vinculadas": {
      "Deterioro de valor de participaciones a corto plazo": {
       "account_number": "5130",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "513",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Intereses a corto plazo de deudas con partes vinculadas": {
      "Deterioro de valor de participaciones a corto plazo en empresas asociadas": {
       "Deterioro de valor de participaciones a corto plazo en empresas asociadas": {
        "account_number": "51400",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5140",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de participaciones a corto plazo en empresas del grupo": {
       "Deterioro de valor de participaciones a corto plazo en empresas del grupo": {
        "account_number": "51410",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5141",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de participaciones a corto plazo en otras partes vinculadas": {
       "Deterioro de valor de participaciones a corto plazo en otras partes vinculadas": {
        "account_number": "51420",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5142",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "514",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Deterioro de valor de valores representativos de deuda a corto plazo": {
      "Deterioro de valor de valores representativos de deuda a corto plazo": {
       "account_number": "5150",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 0
      },
      "account_number": "515",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Deterioro de valor de valores representativos de deuda a corto plazo de partes vinculadas": {
      "Deterioro de valor de valores representativos de deuda a corto plazo de empresas asociadas": {
       "Deterioro de valor de valores representativos de deuda a corto plazo de empresas asociadas": {
        "account_number": "51600",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5160",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de valores representativos de deuda a corto plazo de empresas del grupo": {
       "Deterioro de valor de valores representativos de deuda a corto plazo de empresas del grupo": {
        "account_number": "51610",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5161",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Deterioro de valor de valores representativos de deuda a corto plazo de otras partes vinculadas": {
       "Deterioro de valor de valores representativos de deuda a corto plazo de otras partes vinculadas": {
        "account_number": "51620",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5162",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "516",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Acreedores por arrendamiento financiero a corto plazo, partes vinculadas (517)": {
@@ -4288,7 +4288,7 @@
      "is_group": 1
     },
     "account_number": "51",
-    "root_type": "Asset",
+    "root_type": "Liability",
     "is_group": 1
    },
    "Deudas a corto plazo por préstamos recibidos y otros conceptos": {
@@ -4307,11 +4307,11 @@
       "Acciones o participaciones a corto plazo consideradas como pasivos financieros": {
        "Acciones o participaciones a corto plazo consideradas como pasivos financieros": {
         "account_number": "521000",
-        "root_type": "Asset",
+        "root_type": "Liability",
         "is_group": 0
        },
        "account_number": "52100",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 1
       },
       "account_number": "5210",
@@ -4321,86 +4321,86 @@
      "Deudas representadas en otros valores negociables a corto plazo": {
       "Deudas representadas en otros valores negociables a corto plazo": {
        "account_number": "52110",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5211",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Dividendos de acciones o participaciones consideradas como pasivos financieros": {
       "Dividendos de acciones o participaciones consideradas como pasivos financieros": {
        "account_number": "52120",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5212",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Intereses a corto plazo de empréstitos y otras emisiones análogas": {
       "Intereses a corto plazo de empréstitos y otras emisiones análogas": {
        "account_number": "52130",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5213",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Obligaciones y bonos a corto plazo": {
       "Obligaciones y bonos a corto plazo": {
        "account_number": "52140",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5214",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Obligaciones y bonos convertibles a corto plazo": {
       "Obligaciones y bonos convertibles a corto plazo": {
        "account_number": "52150",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5215",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Valores negociables amortizados": {
       "Obligaciones y bonos amortizados": {
        "Obligaciones y bonos amortizados": {
         "account_number": "521600",
-        "root_type": "Asset",
+        "root_type": "Liability",
         "is_group": 0
        },
        "account_number": "52160",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 1
       },
       "Obligaciones y bonos convertibles amortizados": {
        "Obligaciones y bonos convertibles amortizados": {
         "account_number": "521610",
-        "root_type": "Asset",
+        "root_type": "Liability",
         "is_group": 0
        },
        "account_number": "52161",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 1
       },
       "Otros valores negociables amortizados": {
        "Otros valores negociables amortizados": {
         "account_number": "521620",
-        "root_type": "Asset",
+        "root_type": "Liability",
         "is_group": 0
        },
        "account_number": "52162",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 1
       },
       "account_number": "5216",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "521",
@@ -4910,7 +4910,7 @@
      "is_group": 1
     },
     "account_number": "53",
-    "root_type": "Liability",
+    "root_type": "Asset",
     "is_group": 1
    },
    "Otras inversiones financieras a corto plazo": {
@@ -5188,55 +5188,55 @@
      "Desembolsos exigidos sobre participaciones de otras empresas": {
       "Desembolsos exigidos sobre participaciones de otras empresas": {
        "account_number": "55600",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5560",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Desembolsos exigidos sobre participaciones, empresas asociadas": {
       "Desembolsos exigidos sobre participaciones, empresas asociadas": {
        "account_number": "55610",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5561",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Desembolsos exigidos sobre participaciones, empresas del grupo": {
       "Desembolsos exigidos sobre participaciones, empresas del grupo": {
        "account_number": "55620",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5562",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "Desembolsos exigidos sobre participaciones, otras partes vinculadas": {
       "Desembolsos exigidos sobre participaciones, otras partes vinculadas": {
        "account_number": "55630",
-       "root_type": "Asset",
+       "root_type": "Liability",
        "is_group": 0
       },
       "account_number": "5563",
-      "root_type": "Asset",
+      "root_type": "Liability",
       "is_group": 1
      },
      "account_number": "556",
-     "root_type": "Asset",
+     "root_type": "Liability",
      "is_group": 1
     },
     "Dividendo activo a cuenta": {
      "Dividendo activo a cuenta": {
       "account_number": "5570",
-      "root_type": "Asset",
+      "root_type": "Equity",
       "is_group": 0
      },
      "account_number": "557",
-     "root_type": "Asset",
+     "root_type": "Equity",
      "is_group": 1
     },
     "Socios por desembolsos exigidos": {

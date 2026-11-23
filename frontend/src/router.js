@@ -25,6 +25,47 @@ const routes = [
     name: 'Dashboard',
     component: () => import('@/pages/Dashboard.vue'),
   },
+  {
+    path: '/indicators',
+    name: 'Indicators',
+    component: () => import('@/pages/Indicadores.vue'),
+  },
+
+  // Tesorería
+  {
+    path: '/receivables',
+    name: 'Receivables',
+    component: () => import('@/pages/CuentasPendientes.vue'),
+    props: { tipo: 'cobrar' },
+  },
+  {
+    path: '/payables',
+    name: 'Payables',
+    component: () => import('@/pages/CuentasPendientes.vue'),
+    props: { tipo: 'pagar' },
+  },
+  {
+    path: '/cash-forecast',
+    name: 'CashForecast',
+    component: () => import('@/pages/PrevisionTesoreria.vue'),
+  },
+
+  // Costes y márgenes
+  {
+    path: '/production-costs',
+    name: 'ProductionCosts',
+    component: () => import('@/pages/CostesProduccion.vue'),
+  },
+  {
+    path: '/stock-valuation',
+    name: 'StockValuation',
+    component: () => import('@/pages/ValoracionExistencias.vue'),
+  },
+  {
+    path: '/profitability',
+    name: 'Profitability',
+    component: () => import('@/pages/Rentabilidad.vue'),
+  },
 
   // Ventas (Books)
   {
@@ -57,12 +98,19 @@ const routes = [
     }),
   },
   {
+    path: '/billing-milestones',
+    name: 'BillingMilestones',
+    component: () => import('@/pages/HitosFacturacion.vue'),
+  },
+  {
     path: '/sales-invoices',
     name: 'SalesInvoices',
     ...docList({
       title: 'Facturas de venta',
       doctype: 'Sales Invoice',
       deskPath: 'sales-invoice',
+      detailRoute: 'SalesInvoice',
+      sii: true,
       newLabel: 'Nueva factura',
       fields: [
         'name',
@@ -86,10 +134,18 @@ const routes = [
           align: 'end',
         },
         { label: 'Estado', key: 'status', width: '8rem' },
+        { label: 'SII', key: '_sii', width: '10rem' },
       ],
       emptyTitle: 'Sin facturas de venta',
       emptyDescription: 'Todavía no hay facturas de venta en ERPNext',
     }),
+  },
+  {
+    path: '/sales-invoices/:name',
+    name: 'SalesInvoice',
+    component: () => import('@/pages/Factura.vue'),
+    props: (route) => ({ name: route.params.name, doctype: 'Sales Invoice' }),
+    meta: { parent: 'SalesInvoices' },
   },
   {
     path: '/sales-payments',
@@ -177,10 +233,13 @@ const routes = [
       title: 'Facturas de compra',
       doctype: 'Purchase Invoice',
       deskPath: 'purchase-invoice',
+      detailRoute: 'PurchaseInvoice',
+      sii: true,
       newLabel: 'Nueva factura',
       fields: [
         'name',
         'supplier_name',
+        'bill_no',
         'posting_date',
         'grand_total',
         'outstanding_amount',
@@ -191,6 +250,7 @@ const routes = [
       columns: [
         { label: 'Factura', key: 'name', width: '11rem' },
         { label: 'Proveedor', key: 'supplier_name' },
+        { label: 'Nº proveedor', key: 'bill_no', width: '10rem' },
         { label: 'Fecha', key: 'posting_date', width: '9rem' },
         { label: 'Total', key: 'grand_total', width: '9rem', align: 'end' },
         {
@@ -200,10 +260,18 @@ const routes = [
           align: 'end',
         },
         { label: 'Estado', key: 'status', width: '8rem' },
+        { label: 'SII', key: '_sii', width: '10rem' },
       ],
       emptyTitle: 'Sin facturas de compra',
       emptyDescription: 'Todavía no hay facturas de compra en ERPNext',
     }),
+  },
+  {
+    path: '/purchase-invoices/:name',
+    name: 'PurchaseInvoice',
+    component: () => import('@/pages/Factura.vue'),
+    props: (route) => ({ name: route.params.name, doctype: 'Purchase Invoice' }),
+    meta: { parent: 'PurchaseInvoices' },
   },
   {
     path: '/purchase-payments',
@@ -366,6 +434,11 @@ const routes = [
     component: () => import('@/pages/BalanceSheet.vue'),
   },
   {
+    path: '/cash-flow-statement',
+    name: 'CashFlowStatement',
+    component: () => import('@/pages/FlujosEfectivo.vue'),
+  },
+  {
     path: '/trial-balance',
     name: 'TrialBalance',
     component: () => import('@/pages/TrialBalance.vue'),
@@ -380,11 +453,7 @@ const routes = [
   {
     path: '/sii',
     name: 'SII',
-    ...placeholder(
-      'SII',
-      'Suministro Inmediato de Información a la AEAT (facturas emitidas y recibidas).',
-      'send',
-    ),
+    component: () => import('@/pages/SII.vue'),
   },
   {
     path: '/verifactu',

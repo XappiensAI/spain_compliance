@@ -64,19 +64,26 @@ doc_events = {
 		"before_naming": "spain_compliance.overrides.sales_invoice.on_before_naming",
 		"before_validate": "spain_compliance.contabilidad.cuentas_tercero.on_invoice_before_validate",
 		"validate": [
+			"spain_compliance.contabilidad.series.on_validate",
 			"spain_compliance.contabilidad.registro_fiscal.validar_factura",
 			"spain_compliance.overrides.sales_invoice.on_validate_correlatividad",
+			"spain_compliance.api.hitos.validar_hito_unico",
 		],
 		"before_submit": "spain_compliance.contabilidad.registro_fiscal.before_submit",
-		"on_submit": "spain_compliance.contabilidad.registro_fiscal.on_submit",
-		"on_cancel": "spain_compliance.contabilidad.registro_fiscal.on_cancel",
+		# SII: registro pendiente al validar, baja pendiente al cancelar
+		"on_submit": "spain_compliance.contabilidad.sii.registro.on_submit",
+		"on_cancel": "spain_compliance.contabilidad.sii.registro.on_cancel",
 	},
 	"Purchase Invoice": {
+		"before_naming": "spain_compliance.contabilidad.series.on_before_naming",
 		"before_validate": "spain_compliance.contabilidad.cuentas_tercero.on_invoice_before_validate",
-		"validate": "spain_compliance.contabilidad.registro_fiscal.validar_factura",
+		"validate": [
+			"spain_compliance.contabilidad.series.on_validate",
+			"spain_compliance.contabilidad.registro_fiscal.validar_factura",
+		],
 		"before_submit": "spain_compliance.contabilidad.registro_fiscal.before_submit",
-		"on_submit": "spain_compliance.contabilidad.registro_fiscal.on_submit",
-		"on_cancel": "spain_compliance.contabilidad.registro_fiscal.on_cancel",
+		"on_submit": "spain_compliance.contabilidad.sii.registro.on_submit",
+		"on_cancel": "spain_compliance.contabilidad.sii.registro.on_cancel",
 	},
 }
 
@@ -88,8 +95,14 @@ doctype_js = {
 # Scheduler -------------------------------------------------------------------------
 
 scheduler_events = {
+	"cron": {
+		# SII: envío de pendientes en las compañías con envío automático
+		"*/15 * * * *": ["spain_compliance.contabilidad.sii.registro.tarea_envio_automatico"],
+	},
 	"daily": [
 		# Overdue invoices → "Dudoso Cobro" after Company.meses_dudoso_cobro months
 		"spain_compliance.tasks.auto_mark_dudoso_cobro",
+		# Certificado Digital: estado y avisos de caducidad (60/30/15/7/1/0 días)
+		"spain_compliance.contabilidad.certificados.revisar_caducidad",
 	],
 }

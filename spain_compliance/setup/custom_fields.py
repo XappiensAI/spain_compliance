@@ -21,11 +21,10 @@ except ImportError:
 	def delete_custom_fields(custom_fields: dict[str, list[str]]) -> None:
 		for doctype, fieldnames in (custom_fields or {}).items():
 			for fieldname in fieldnames:
-				name = frappe.db.get_value(
-					"Custom Field", {"dt": doctype, "fieldname": fieldname}, "name"
-				)
+				name = frappe.db.get_value("Custom Field", {"dt": doctype, "fieldname": fieldname}, "name")
 				if name:
 					frappe.delete_doc("Custom Field", name, force=True, ignore_permissions=True)
+
 
 from spain_compliance.contabilidad.clasificacion import (
 	CLAVE_IVA_OPTIONS,
@@ -37,10 +36,16 @@ from spain_compliance.contabilidad.clasificacion import (
 	TIPO_IDENTIFICACION_OPTIONS,
 	TIPO_IMPUESTO_OPTIONS,
 )
+from spain_compliance.finanzas.costes_produccion import NATURALEZA_OPTIONS as NATURALEZA_COSTE_OPTIONS
+from spain_compliance.finanzas.existencias import CLASE_OPTIONS as CLASE_EXISTENCIAS_OPTIONS
 
 # Company -----------------------------------------------------------------
 COMPANY_PGC_FIELDNAME = "pgc_espanol"
 COMPANY_RETURN_SERIES_FIELDNAME = "serie_rectificativas"
+# Serie propia por compañía (el name de una factura es único en todo el sitio).
+COMPANY_SALES_SERIES_FIELDNAME = "serie_facturas"
+COMPANY_PURCHASE_SERIES_FIELDNAME = "serie_facturas_compra"
+COMPANY_PURCHASE_RETURN_SERIES_FIELDNAME = "serie_rectificativas_compra"
 COMPANY_DUDOSO_MONTHS_FIELDNAME = "meses_dudoso_cobro"
 
 # Cuentas auxiliares por tercero (430 clientes / 400 proveedores)
@@ -56,6 +61,7 @@ DEFAULT_SUPPLIER_PREFIX = "4000"
 DEFAULT_ACCOUNT_DIGITS = 8
 
 COMPANY_PRORRATA_FIELDNAME = "prorrata_general"
+COMPANY_PLANTILLA_FIELDNAME = "plantilla_media"
 COMPANY_EXIGIR_CLASIFICACION_FIELDNAME = "exigir_clasificacion_fiscal"
 
 # Copiados de la plantilla a la fila de la factura cuando esta va vacía.
@@ -137,6 +143,21 @@ def _identificacion_tercero() -> list[dict]:
 
 
 CUSTOM_FIELDS: dict[str, list[dict]] = {
+	"Sales Invoice": [
+		{
+			"fieldname": "hito_pedido",
+			"label": "Hito del pedido",
+			"fieldtype": "Data",
+			"insert_after": "po_date",
+			"read_only": 1,
+			"no_copy": 1,
+			"search_index": 1,
+			"description": (
+				"Fila del calendario de pagos de la orden de venta que factura esta factura. "
+				"La pone la página Hitos de facturación al crear la factura."
+			),
+		},
+	],
 	"Company": [
 		{
 			"fieldname": "spain_compliance_section",
@@ -157,10 +178,22 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 			),
 		},
 		{
+			"fieldname": COMPANY_SALES_SERIES_FIELDNAME,
+			"label": "Serie de facturas emitidas",
+			"fieldtype": "Data",
+			"insert_after": COMPANY_PGC_FIELDNAME,
+			"description": (
+				"Serie de las facturas de venta ordinarias de esta compañía. Se aplica sola al "
+				"crear la factura y no se puede usar en otra compañía. Vacío para no forzar. "
+				"Ejemplo: <code>FV.YY.#####</code>. <code>YY</code> toma el año de la fecha "
+				"de la factura."
+			),
+		},
+		{
 			"fieldname": COMPANY_RETURN_SERIES_FIELDNAME,
 			"label": "Serie de facturas rectificativas",
 			"fieldtype": "Data",
-			"insert_after": COMPANY_PGC_FIELDNAME,
+			"insert_after": COMPANY_SALES_SERIES_FIELDNAME,
 			"description": (
 				"Serie que se fuerza en las facturas de venta de abono (rectificativas) de esta "
 				"compañía. Dejar vacío para no forzar ninguna. Ejemplo: "
@@ -169,9 +202,26 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 			),
 		},
 		{
+			"fieldname": COMPANY_PURCHASE_SERIES_FIELDNAME,
+			"label": "Serie de facturas recibidas",
+			"fieldtype": "Data",
+			"insert_after": COMPANY_RETURN_SERIES_FIELDNAME,
+			"description": (
+				"Número de registro interno de las facturas de compra (el del proveedor va en "
+				"<i>Nº factura proveedor</i>). Ejemplo: <code>FC.YY.#####</code>."
+			),
+		},
+		{
+			"fieldname": COMPANY_PURCHASE_RETURN_SERIES_FIELDNAME,
+			"label": "Serie de rectificativas recibidas",
+			"fieldtype": "Data",
+			"insert_after": COMPANY_PURCHASE_SERIES_FIELDNAME,
+			"description": "Serie de los abonos de compra. Ejemplo: <code>AC.YY.#####</code>.",
+		},
+		{
 			"fieldname": "spain_compliance_column",
 			"fieldtype": "Column Break",
-			"insert_after": COMPANY_RETURN_SERIES_FIELDNAME,
+			"insert_after": COMPANY_PURCHASE_RETURN_SERIES_FIELDNAME,
 		},
 		{
 			"fieldname": COMPANY_DUDOSO_MONTHS_FIELDNAME,
@@ -353,6 +403,24 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 			"fieldtype": "Data",
 			"insert_after": "contacto_aeat",
 		},
+		{
+			"fieldname": "indicadores_section",
+			"label": "Indicadores de gestión",
+			"fieldtype": "Section Break",
+			"insert_after": "telefono_aeat",
+			"collapsible": 1,
+		},
+		{
+			"fieldname": COMPANY_PLANTILLA_FIELDNAME,
+			"label": "Plantilla media (manual)",
+			"fieldtype": "Float",
+			"insert_after": "indicadores_section",
+			"precision": "1",
+			"description": (
+				"Número medio de empleados para el ingreso por empleado. Vacío o 0: se calcula con "
+				"las fechas de alta y baja de los empleados de la compañía."
+			),
+		},
 	],
 	"Sales Taxes and Charges": _clasificacion_impuesto("base_net_amount"),
 	"Purchase Taxes and Charges": _clasificacion_impuesto("base_net_amount"),
@@ -372,11 +440,51 @@ CUSTOM_FIELDS: dict[str, list[dict]] = {
 	],
 	"Customer": _identificacion_tercero(),
 	"Supplier": _identificacion_tercero(),
+	"Warehouse": [
+		{
+			"fieldname": "clase_existencias",
+			"label": "Clase de existencias (PGC)",
+			"fieldtype": "Select",
+			"options": CLASE_EXISTENCIAS_OPTIONS,
+			"insert_after": "account",
+			"description": (
+				"Subgrupo del PGC (30 a 36) en que se valoran las existencias de este almacén. "
+				"Vacío: se deduce del almacén de trabajo en curso, del grupo de artículos, de la "
+				"cuenta del almacén o de las listas de materiales."
+			),
+		},
+	],
+	"Item Group": [
+		{
+			"fieldname": "clase_existencias",
+			"label": "Clase de existencias (PGC)",
+			"fieldtype": "Select",
+			"options": CLASE_EXISTENCIAS_OPTIONS,
+			"insert_after": "parent_item_group",
+			"description": "Se hereda en los grupos hijos. El almacén, si la indica, tiene prioridad.",
+		},
+	],
+	"Workstation Operating Component": [
+		{
+			"fieldname": "naturaleza_coste",
+			"label": "Naturaleza del coste",
+			"fieldtype": "Select",
+			"options": NATURALEZA_COSTE_OPTIONS,
+			"insert_after": "component_name",
+			"in_list_view": 1,
+			"description": (
+				"Mano de obra (MO) o costes indirectos de fabricación (CIF) en el análisis de costes "
+				"de producción. Vacío: se deduce del nombre (salarios, mano de obra… cuentan como MO)."
+			),
+		},
+	],
 }
 
 
 def create_app_custom_fields(update: bool = True) -> None:
-	create_custom_fields(CUSTOM_FIELDS, ignore_validate=frappe.flags.in_patch, update=update)
+	# Workstation Operating Component no existe antes de ERPNext 16.
+	existentes = {dt: fields for dt, fields in CUSTOM_FIELDS.items() if frappe.db.exists("DocType", dt)}
+	create_custom_fields(existentes, ignore_validate=frappe.flags.in_patch, update=update)
 
 
 def delete_legacy_fields() -> None:

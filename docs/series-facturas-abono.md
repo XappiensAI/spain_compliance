@@ -42,3 +42,20 @@ Cada prefijo resuelto tiene su contador, p. ej. `ACMEF26` y `ACMER26`. **Cancela
 ## Correlatividad (serie + fecha)
 
 Además de la serie propia de abonos, dentro de **cada** serie la numeración debe ser correlativa y cronológica. La app lo valida en servidor (sin interruptor). Detalle y patrón correcto con Auto Repeat: [correlatividad-facturas.md](correlatividad-facturas.md).
+
+## Serie por compañía (emitidas y recibidas)
+
+El número de una factura es único en todo el sitio, no por compañía. Si dos compañías usan la misma serie, la segunda consume números de la primera. En Company → *Contabilidad España* hay cuatro campos.
+
+| Campo | Se aplica a |
+|-------|-------------|
+| Serie de facturas emitidas | Sales Invoice ordinaria |
+| Serie de facturas rectificativas | Sales Invoice de abono |
+| Serie de facturas recibidas | Purchase Invoice ordinaria (número de registro interno; el del proveedor va en *Nº factura proveedor*) |
+| Serie de rectificativas recibidas | Purchase Invoice de abono |
+
+Al numerar, la factura toma la serie de su compañía si la elegida está vacía, es la de por defecto del DocType o pertenece a otra compañía. Una serie distinta elegida a mano (p. ej. una histórica) se respeta. Al validar, usar la serie configurada para **otra** compañía da error.
+
+## Año de la serie (`YY`)
+
+Por defecto Frappe resuelve `YY` y `YYYY` con la fecha de **hoy**. Una factura del 31/12 creada el 2/1 saldría con el año siguiente y rompería la correlatividad. Activar en *Global Defaults* la opción de ERPNext **Use Posting Datetime for Naming Documents** (`use_posting_datetime_for_naming_documents`), que usa la fecha de la factura.

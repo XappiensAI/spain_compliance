@@ -15,6 +15,7 @@ from spain_compliance.contabilidad.arbol_pgc import (
 	plantilla_coherente,
 )
 from spain_compliance.contabilidad.pgc import CUADRO
+from spain_compliance.contabilidad.plan_contable import root_type_pgc
 
 _PLANTILLA = Path(__file__).resolve().parents[1] / "contabilidad" / "charts" / "es_pgce_con_numeros.json"
 
@@ -41,6 +42,39 @@ class TestPadreCanonico(TestCase):
 		self.assertEqual(padre_canonico("210", grupos), "21")
 		self.assertIsNone(padre_canonico("2", grupos))
 		self.assertEqual(padre_canonico("43", {"4", "43"}), "4")
+
+
+class TestNaturaleza(TestCase):
+	def test_grupos_mixtos_por_naturaleza(self):
+		# 47: Hacienda deudora e IVA soportado son activo; acreedora e IVA repercutido, pasivo
+		self.assertEqual(root_type_pgc("472000021"), "Asset")
+		self.assertEqual(root_type_pgc("4700"), "Asset")
+		self.assertEqual(root_type_pgc("477000021"), "Liability")
+		self.assertEqual(root_type_pgc("4751"), "Liability")
+		# 43/40: anticipos de clientes es pasivo; anticipos a proveedores, activo
+		self.assertEqual(root_type_pgc("430013885"), "Asset")
+		self.assertEqual(root_type_pgc("438000001"), "Liability")
+		self.assertEqual(root_type_pgc("400000000"), "Liability")
+		self.assertEqual(root_type_pgc("407000001"), "Asset")
+		# 5: deudas c/p pasivo, inversiones y tesorería activo
+		self.assertEqual(root_type_pgc("520800001"), "Liability")
+		self.assertEqual(root_type_pgc("5400"), "Asset")
+		self.assertEqual(root_type_pgc("572000001"), "Asset")
+		self.assertEqual(root_type_pgc("560"), "Liability")
+		self.assertEqual(root_type_pgc("565"), "Asset")
+
+	def test_patrimonio_gastos_e_ingresos(self):
+		self.assertEqual(root_type_pgc("100"), "Equity")
+		self.assertEqual(root_type_pgc("129000000"), "Equity")
+		self.assertEqual(root_type_pgc("170"), "Liability")
+		self.assertEqual(root_type_pgc("281400122"), "Asset")
+		self.assertEqual(root_type_pgc("600000000"), "Expense")
+		self.assertEqual(root_type_pgc("700000800"), "Income")
+		self.assertEqual(root_type_pgc("800"), "Equity")
+
+	def test_sin_numero(self):
+		self.assertIsNone(root_type_pgc(""))
+		self.assertIsNone(root_type_pgc("Caja"))
 
 
 class TestPlan(TestCase):

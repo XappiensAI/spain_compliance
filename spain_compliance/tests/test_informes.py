@@ -3,6 +3,8 @@
 
 """Informes del portal: libro de IVA, liquidación y estados contables."""
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import getdate, nowdate
@@ -54,29 +56,34 @@ def _company():
 	).insert()
 
 
-def _registro(**kwargs):
-	today = getdate(nowdate())
-	trimestre = f"{((today.month - 1) // 3) + 1}T"
-	doc = frappe.get_doc(
-		{
-			"doctype": "Registro Fiscal IVA",
-			"naming_series": "RF-.YYYY.-",
-			"company": COMPANY,
-			"fecha": today,
-			"ejercicio": str(today.year),
-			"periodo_trimestre": trimestre,
-			"periodo_mes": f"{today.month:02d}",
-			"voucher_type": "Sales Invoice",
-			"voucher_no": "SI-TEST-INFORMES",
-			"numero": "1",
-			"party_name": "Tercero informes",
-			"nif": "B00000000",
-			"currency": "EUR",
-			**kwargs,
-		}
-	)
-	doc.flags.ignore_links = True
-	return doc.insert()
+def _linea(**kwargs):
+	"""Línea del libro de IVA tal como la devuelve ``movimientos_iva``."""
+	linea = {
+		"voucher_type": "Sales Invoice",
+		"voucher_no": "SI-TEST-INFORMES",
+		"fecha": getdate(nowdate()),
+		"libro": "Expedidas",
+		"cuenta": "IVA - TEST",
+		"numero": "1",
+		"numero_externo": None,
+		"party_name": "Tercero informes",
+		"nif": "B00000000",
+		"tipo_impuesto": "IVA",
+		"clave_iva": "S1",
+		"autorrepercusion": False,
+		"tipo_impositivo": 21,
+		"base_imponible": 0,
+		"cuota": 0,
+		"cuota_deducible": 0,
+		"total_factura": 0,
+		"sin_clasificar": False,
+	}
+	linea.update(kwargs)
+	return linea
+
+
+def _con_lineas(lineas):
+	return patch("spain_compliance.contabilidad.libro_iva.movimientos_iva", return_value=lineas)
 
 
 class TestInformes(FrappeTestCase):
@@ -86,50 +93,31 @@ class TestInformes(FrappeTestCase):
 		_fiscal_year()
 		_company()
 
-	def setUp(self):
-		super().setUp()
-		frappe.db.delete("Registro Fiscal IVA", {"company": COMPANY})
-
 	def test_libro_y_liquidacion(self):
 		today = nowdate()
-		_registro(
-			libro="Expedidas",
-			voucher_no="SI-TEST-INFORMES-E",
-			base_imponible=100,
-			tipo_impositivo=21,
-			cuota=21,
-			cuota_deducible=0,
-			clave_iva="S1",
-			tipo_impuesto="IVA",
-		)
-		_registro(
-			libro="Recibidas",
-			voucher_type="Purchase Invoice",
-			voucher_no="PI-TEST-INFORMES-R",
-			numero="F-9",
-			base_imponible=50,
-			tipo_impositivo=21,
-			cuota=10.5,
-			cuota_deducible=10,
-			clave_iva="S1",
-			tipo_impuesto="IVA",
-		)
-		_registro(
-			libro="Expedidas",
-			voucher_no="SI-TEST-INFORMES-X",
-			anulado=1,
-			base_imponible=999,
-			cuota=999,
-		)
-
-		libro = libro_iva(COMPANY, f"{getdate(today).year}-01-01", today, "Expedidas")
+		inicio = f"{getdate(today).year}-01-01"
+		lineas = [
+			_linea(voucher_no="SI-E", base_imponible=100, cuota=21),
+			_linea(
+				libro="Recibidas",
+				voucher_type="Purchase Invoice",
+				voucher_no="PI-R",
+				numero_externo="F-9",
+				base_imponible=50,
+				cuota=10.5,
+				cuota_deducible=10,
+			),
+		]
+		# El filtro por libro lo hace movimientos_iva; aquí se le pasan solo las expedidas.
+		with _con_lineas(lineas[:1]):
+			libro = libro_iva(COMPANY, inicio, today, "Expedidas")
 		self.assertEqual(libro["totals"]["filas"], 1)
 		self.assertEqual(libro["totals"]["base"], 100)
 		self.assertEqual(libro["totals"]["cuota"], 21)
 		self.assertEqual(libro["rows"][0]["nif"], "B00000000")
-		self.assertFalse(libro["rows"][0]["anulado"])
 
-		liquidacion = liquidacion_iva(COMPANY, f"{getdate(today).year}-01-01", today)
+		with _con_lineas(lineas):
+			liquidacion = liquidacion_iva(COMPANY, inicio, today)
 		self.assertEqual(liquidacion["repercutido"]["cuota"], 21)
 		self.assertEqual(liquidacion["soportado"]["deducible"], 10)
 		self.assertEqual(liquidacion["resultado"], 11)
@@ -138,53 +126,66 @@ class TestInformes(FrappeTestCase):
 	def test_libro_excluye_retencion_y_otro(self):
 		today = nowdate()
 		inicio = f"{getdate(today).year}-01-01"
-		_registro(
-			libro="Expedidas",
-			voucher_no="SI-TEST-INFORMES-IVA",
-			base_imponible=100,
-			cuota=21,
-			tipo_impuesto="IVA",
-			clave_iva="S1",
-		)
-		_registro(
-			libro="Expedidas",
-			voucher_no="SI-TEST-INFORMES-IRPF",
-			base_imponible=100,
-			tipo_impositivo=15,
-			cuota=15,
-			tipo_impuesto="Retención IRPF",
-		)
-		_registro(
-			libro="Expedidas",
-			voucher_no="SI-TEST-INFORMES-OTRO",
-			base_imponible=40,
-			cuota=40,
-			tipo_impuesto="Otro",
-		)
-		_registro(
-			libro="Recibidas",
-			voucher_type="Purchase Invoice",
-			voucher_no="PI-TEST-INFORMES-IGIC",
-			base_imponible=100,
-			tipo_impositivo=7,
-			cuota=7,
-			cuota_deducible=7,
-			tipo_impuesto="IGIC",
-			clave_iva="S1",
-		)
-
-		libro = libro_iva(COMPANY, inicio, today, "Expedidas")
+		lineas = [
+			_linea(voucher_no="SI-IVA", base_imponible=100, cuota=21),
+			_linea(voucher_no="SI-IRPF", base_imponible=100, tipo_impositivo=15, cuota=15, tipo_impuesto="Retención IRPF", clave_iva=None),
+			_linea(voucher_no="SI-OTRO", base_imponible=40, cuota=40, tipo_impuesto="Otro", clave_iva=None),
+			_linea(
+				libro="Recibidas",
+				voucher_type="Purchase Invoice",
+				voucher_no="PI-IGIC",
+				base_imponible=100,
+				tipo_impositivo=7,
+				cuota=7,
+				cuota_deducible=7,
+				tipo_impuesto="IGIC",
+			),
+		]
+		with _con_lineas(lineas[:3]):
+			libro = libro_iva(COMPANY, inicio, today, "Expedidas")
 		self.assertEqual(libro["totals"]["filas"], 1)
 		self.assertEqual(libro["totals"]["base"], 100)
 		self.assertEqual(libro["totals"]["cuota"], 21)
 		self.assertEqual([row["tipo_impuesto"] for row in libro["rows"]], ["IVA"])
 
-		liquidacion = liquidacion_iva(COMPANY, inicio, today)
+		with _con_lineas(lineas):
+			liquidacion = liquidacion_iva(COMPANY, inicio, today)
 		self.assertEqual(liquidacion["repercutido"]["cuota"], 21)
 		self.assertEqual(liquidacion["repercutido"]["filas"], 1)
 		self.assertEqual(liquidacion["soportado"]["cuota"], 7)
 		self.assertEqual(liquidacion["soportado"]["deducible"], 7)
 		self.assertEqual(liquidacion["resultado"], 14)
+
+	def test_autorrepercusion_suma_al_devengado(self):
+		today = nowdate()
+		inicio = f"{getdate(today).year}-01-01"
+		lineas = [
+			_linea(
+				libro="Recibidas",
+				voucher_type="Purchase Invoice",
+				voucher_no="PI-AIB",
+				clave_iva="AIB",
+				base_imponible=1000,
+				cuota=210,
+				cuota_deducible=210,
+			),
+			_linea(
+				libro="Recibidas",
+				voucher_type="Purchase Invoice",
+				voucher_no="PI-AIB",
+				cuenta="477 AIB - TEST",
+				tipo_impuesto="Otro",
+				clave_iva=None,
+				autorrepercusion=True,
+				base_imponible=1000,
+				cuota=210,
+			),
+		]
+		with _con_lineas(lineas):
+			liquidacion = liquidacion_iva(COMPANY, inicio, today)
+		self.assertEqual(liquidacion["autorrepercutido"], 210)
+		self.assertEqual(liquidacion["soportado"]["deducible"], 210)
+		self.assertEqual(liquidacion["resultado"], 0)
 
 	def test_estados_y_plan(self):
 		from erpnext.accounts.utils import get_fiscal_year

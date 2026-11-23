@@ -163,6 +163,39 @@ FALLBACK_SUBGRUPO = {
 }
 
 
+# Naturaleza de balance de cada cuenta según el PGC (prefijo más largo gana, hasta 3 dígitos).
+# Dentro de un mismo subgrupo conviven activo y pasivo: 470–474 Hacienda deudora e IVA soportado son activo
+# y 475–479 Hacienda acreedora e IVA repercutido son pasivo; 438 anticipos de clientes es pasivo y 407
+# anticipos a proveedores es activo. Los grupos 8 y 9 se imputan al patrimonio neto.
+NATURALEZA_PGC: dict[str, str] = {
+	"10": "Equity", "11": "Equity", "12": "Equity", "13": "Equity", "14": "Liability", "15": "Liability",
+	"16": "Liability", "17": "Liability", "18": "Liability", "19": "Equity",
+	"2": "Asset", "3": "Asset",
+	"40": "Liability", "407": "Asset", "41": "Liability",
+	"43": "Asset", "437": "Liability", "438": "Liability", "44": "Asset", "449": "Liability",
+	"46": "Liability", "460": "Asset",
+	"47": "Asset", "475": "Liability", "476": "Liability", "477": "Liability", "479": "Liability",
+	"48": "Asset", "485": "Liability", "49": "Asset", "499": "Liability",
+	"50": "Liability", "51": "Liability", "52": "Liability", "53": "Asset", "54": "Asset",
+	"55": "Asset", "556": "Liability", "557": "Equity",
+	"56": "Asset", "560": "Liability", "561": "Liability", "568": "Liability", "569": "Liability",
+	"57": "Asset", "58": "Asset", "585": "Liability", "586": "Liability", "587": "Liability", "588": "Liability",
+	"589": "Liability", "59": "Asset",
+	"6": "Expense", "7": "Income", "8": "Equity", "9": "Equity",
+}
+
+
+def root_type_pgc(numero: str) -> str | None:
+	"""root_type de una cuenta por su número según su naturaleza en el PGC; None si no es numérica."""
+	numero = (numero or "").strip()
+	if not numero.isdigit():
+		return None
+	for largo in range(min(len(numero), 3), 0, -1):
+		if root := NATURALEZA_PGC.get(numero[:largo]):
+			return root
+	return None
+
+
 def es_compania_pgc(company: str | None) -> bool:
 	"""True si la compañía usa el árbol PGC de 9 grupos (root_type por cuenta)."""
 	if not company:

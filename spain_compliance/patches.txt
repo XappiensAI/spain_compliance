@@ -6,3 +6,4 @@
 # Patches added in this section will be executed after doctypes are migrated
 spain_compliance.patches.v0_1.rename_company_pgc_field
 spain_compliance.patches.v0_3.alinear_arbol_pgc
+spain_compliance.patches.v0_3.retirar_registro_fiscal_iva
