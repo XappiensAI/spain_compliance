@@ -51,22 +51,23 @@ Treasury, costs and KPIs in the same app, computed live from ERPNext documents a
 
 ## Compatibility
 
-| Branch (GitLab Xappiens) | Frappe / ERPNext |
-|--------------------------|------------------|
-| `frappe-15`              | v15              |
-| `frappe-16`              | v16              |
+| Branch       | Frappe / ERPNext |
+|--------------|------------------|
+| `version-15` | v15              |
+| `version-16` | v16              |
 
 Requires **ERPNext** (installed automatically as a dependency). Building the UI requires **Node.js ≥ 20.11** (frappe-ui / Vite 5). On Frappe Cloud, select Node 20 or 22 in your bench *Dependencies*.
 
 ## Installation
 
 ### Frappe Cloud
-Install from the Marketplace, or add `https://github.com/xappiens-ai/spain_compliance` as a custom app (public releases track v15 as `version-15`).
+Install from the Marketplace, or add `https://github.com/XappiensAI/spain_compliance` as a custom app and pick the branch that matches your Frappe version (`version-15` or `version-16`).
 
-### Self-hosted bench (Frappe 16 / rama canónica)
+### Self-hosted bench
 
 ```bash
-bench get-app --branch frappe-16 https://gitlab.xappiens.es/xappiens/spain_compliance.git
+# Frappe / ERPNext 16 (use version-15 on v15)
+bench get-app --branch version-16 https://github.com/XappiensAI/spain_compliance.git
 bench --site <site> install-app spain_compliance
 ```
 

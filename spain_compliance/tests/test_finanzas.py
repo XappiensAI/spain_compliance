@@ -114,9 +114,7 @@ class TestExistencias(UnitTestCase):
 		self.assertEqual(self._clase(almacen=almacen, en_curso=["WIP"]), ex.TERMINADOS)
 		almacen = {"name": "WIP", "numero_cuenta": "310"}
 		self.assertEqual(self._clase(almacen=almacen, en_curso=["WIP"]), ex.EN_CURSO)
-		self.assertEqual(
-			self._clase(almacen=almacen, grupos={"G": ex.SUBPRODUCTOS}), ex.SUBPRODUCTOS
-		)
+		self.assertEqual(self._clase(almacen=almacen, grupos={"G": ex.SUBPRODUCTOS}), ex.SUBPRODUCTOS)
 		self.assertEqual(self._clase(almacen=almacen), ex.MATERIAS_PRIMAS)
 
 	def test_listas_de_materiales(self):

@@ -125,7 +125,8 @@ def _rellenar_cabecera(reg, f: dict):
 			"periodo": f["periodo"],
 			"importe_total": f["importe_total"],
 			"fecha_limite": fecha_limite(
-				f["fecha_expedicion"] if f["libro"] == "Expedidas" else f["fecha_contable"], f["fecha_contable"]
+				f["fecha_expedicion"] if f["libro"] == "Expedidas" else f["fecha_contable"],
+				f["fecha_contable"],
 			),
 		}
 	)
@@ -269,7 +270,13 @@ def reiniciar_por_cambio_de_entorno(company: str, anterior: str, nuevo: str) -> 
 				"intentos": 0,
 			}
 		)
-		_evento(r, _("Cambio a Producción"), PENDIENTE, entorno=nuevo, mensaje=_("Lo enviado a Pruebas no cuenta."))
+		_evento(
+			r,
+			_("Cambio a Producción"),
+			PENDIENTE,
+			entorno=nuevo,
+			mensaje=_("Lo enviado a Pruebas no cuenta."),
+		)
 		r.save(ignore_permissions=True)
 	return len(nombres)
 
@@ -311,7 +318,9 @@ def _marcar(reg, estado: str, accion: str, entorno: str, **kw):
 		reg.xml_enviado = kw["xml"]
 	if "respuesta" in kw:
 		reg.respuesta = kw["respuesta"]
-	_evento(reg, accion, estado, entorno, csv=kw.get("csv"), codigo=kw.get("codigo"), mensaje=kw.get("mensaje"))
+	_evento(
+		reg, accion, estado, entorno, csv=kw.get("csv"), codigo=kw.get("codigo"), mensaje=kw.get("mensaje")
+	)
 	reg.save(ignore_permissions=True)
 
 
@@ -321,7 +330,13 @@ def _clave_linea(numero: str | None, nif: str | None, libro: str) -> tuple:
 
 
 def _procesar_respuesta(
-	regs_datos: list[tuple], resp: dict, libro: str, entorno: str, accion: str, baja: bool, accion_tipo: str | None
+	regs_datos: list[tuple],
+	resp: dict,
+	libro: str,
+	entorno: str,
+	accion: str,
+	baja: bool,
+	accion_tipo: str | None,
 ) -> list[tuple]:
 	"""Fija el estado de cada registro. Devuelve los que hay que reenviar como A1."""
 	por_clave = {}
@@ -379,7 +394,9 @@ def _procesar_respuesta(
 			estado,
 			accion,
 			entorno,
-			csv=(ln.get("csv") or resp.get("csv")) if estado in (ACEPTADO, ACEPTADO_ERRORES, DADO_DE_BAJA) else None,
+			csv=(ln.get("csv") or resp.get("csv"))
+			if estado in (ACEPTADO, ACEPTADO_ERRORES, DADO_DE_BAJA)
+			else None,
 			codigo=codigo,
 			mensaje=mensaje,
 			respuesta=ln.get("xml"),
@@ -645,7 +662,9 @@ def consultar(nombres: list[str]) -> dict:
 
 def _factura_local(company: str, libro: str, numero: str, nif_emisor: str | None) -> tuple | None:
 	if libro == "Expedidas":
-		name = frappe.db.get_value("Sales Invoice", {"name": numero, "company": company, "docstatus": ("!=", 0)})
+		name = frappe.db.get_value(
+			"Sales Invoice", {"name": numero, "company": company, "docstatus": ("!=", 0)}
+		)
 		return ("Sales Invoice", name) if name else None
 	candidatos = frappe.db.sql(
 		"""
@@ -664,7 +683,9 @@ def _factura_local(company: str, libro: str, numero: str, nif_emisor: str | None
 	return ("Purchase Invoice", candidatos[0].name) if len(candidatos) == 1 else None
 
 
-def sincronizar_periodo(company: str, libro: str, ejercicio: str, periodo: str, entorno: str | None = None) -> dict:
+def sincronizar_periodo(
+	company: str, libro: str, ejercicio: str, periodo: str, entorno: str | None = None
+) -> dict:
 	"""Lee de la AEAT todo lo registrado en un periodo y lo cruza con las facturas de Frappe.
 
 	Con el entorno de la configuración actualiza los registros (y crea los de las
@@ -697,7 +718,9 @@ def sincronizar_periodo(company: str, libro: str, ejercicio: str, periodo: str, 
 	for r in en_aeat:
 		local = _factura_local(company, libro, r.get("numero") or "", r.get("nif_emisor"))
 		if not local or not local[1]:
-			sin_factura.append({"numero": r.get("numero"), "nif": r.get("nif_emisor"), "estado": r.get("estado")})
+			sin_factura.append(
+				{"numero": r.get("numero"), "nif": r.get("nif_emisor"), "estado": r.get("estado")}
+			)
 			continue
 		coinciden += 1
 		vistos.add(local)
@@ -745,7 +768,9 @@ def sincronizar_periodo(company: str, libro: str, ejercicio: str, periodo: str, 
 
 def pendientes(company: str, automatico: bool = False) -> list[str]:
 	filtros = {"company": company, "estado": ("in", [PENDIENTE, ERROR_COMUNICACION])}
-	nombres = frappe.get_all(DOCTYPE, filters=filtros, fields=["name", "estado", "intentos"], order_by="fecha_contable")
+	nombres = frappe.get_all(
+		DOCTYPE, filters=filtros, fields=["name", "estado", "intentos"], order_by="fecha_contable"
+	)
 	return [
 		n.name
 		for n in nombres

@@ -34,9 +34,7 @@ def set_root_and_report_type_pgc(doc, call_original):
 
 	# report_type always consistent with this account's own root_type
 	if doc.root_type:
-		doc.report_type = (
-			"Profit and Loss" if doc.root_type in ("Income", "Expense") else "Balance Sheet"
-		)
+		doc.report_type = "Profit and Loss" if doc.root_type in ("Income", "Expense") else "Balance Sheet"
 
 	# Note: do not propagate root_type/report_type to descendants when editing a
 	# group; under PGC each account keeps its own configuration.

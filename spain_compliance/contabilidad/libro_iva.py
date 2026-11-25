@@ -41,7 +41,13 @@ from spain_compliance.contabilidad.identificacion import nif_espanol_valido, nor
 DOCUMENTOS = {
 	"Sales Invoice": ("Sales Taxes and Charges", LIBRO_EXPEDIDAS, "customer", "customer_name", "Customer"),
 	"POS Invoice": ("Sales Taxes and Charges", LIBRO_EXPEDIDAS, "customer", "customer_name", "Customer"),
-	"Purchase Invoice": ("Purchase Taxes and Charges", LIBRO_RECIBIDAS, "supplier", "supplier_name", "Supplier"),
+	"Purchase Invoice": (
+		"Purchase Taxes and Charges",
+		LIBRO_RECIBIDAS,
+		"supplier",
+		"supplier_name",
+		"Supplier",
+	),
 }
 
 CAMPOS_FILA = (
@@ -91,9 +97,11 @@ def _filas_impuesto(tabla: str, padres: list[str]) -> dict[tuple, dict]:
 	out: dict[tuple, dict] = {}
 	if not padres:
 		return out
-	campos = ", ".join(f"`{c}`" for c in CAMPOS_FILA) + ", `add_deduct_tax`" if tabla.startswith(
-		"Purchase"
-	) else ", ".join(f"`{c}`" for c in CAMPOS_FILA)
+	campos = (
+		", ".join(f"`{c}`" for c in CAMPOS_FILA) + ", `add_deduct_tax`"
+		if tabla.startswith("Purchase")
+		else ", ".join(f"`{c}`" for c in CAMPOS_FILA)
+	)
 	for i in range(0, len(padres), 1000):
 		lote = padres[i : i + 1000]
 		for fila in frappe.db.sql(
@@ -117,7 +125,7 @@ def _filas_impuesto(tabla: str, padres: list[str]) -> dict[tuple, dict]:
 
 
 def _cabeceras(doctype: str, nombres: list[str]) -> dict[str, dict]:
-	tabla, _libro, campo_tercero, campo_nombre, _tipo = DOCUMENTOS[doctype]
+	_tabla, _libro, campo_tercero, campo_nombre, _tipo = DOCUMENTOS[doctype]
 	campos = [
 		"name",
 		campo_tercero,
@@ -271,7 +279,9 @@ def movimientos_iva(company: str, desde, hasta, libro: str | None = None) -> lis
 			continue
 
 		# Cuota con el signo natural del libro: repercutido al haber, soportado al debe.
-		cuota = flt(ap.haber) - flt(ap.debe) if libro_linea == LIBRO_EXPEDIDAS else flt(ap.debe) - flt(ap.haber)
+		cuota = (
+			flt(ap.haber) - flt(ap.debe) if libro_linea == LIBRO_EXPEDIDAS else flt(ap.debe) - flt(ap.haber)
+		)
 		tipo = (fila or {}).get("tipo_impuesto") or ""
 		autorrepercusion = bool(fila and fila.get("add_deduct_tax") == "Deduct" and tipo != TIPO_RETENCION)
 		if autorrepercusion or tipo == TIPO_RETENCION:

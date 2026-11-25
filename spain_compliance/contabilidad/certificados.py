@@ -75,9 +75,7 @@ def leer_pkcs12(contenido: bytes, password: str | None):
 	from cryptography.hazmat.primitives.serialization import pkcs12
 
 	try:
-		clave, cert, cadena = pkcs12.load_key_and_certificates(
-			contenido, (password or "").encode() or None
-		)
+		clave, cert, cadena = pkcs12.load_key_and_certificates(contenido, (password or "").encode() or None)
 	except (ValueError, TypeError) as e:
 		raise CertificadoInvalido(str(e)) from e
 
@@ -183,9 +181,7 @@ def get_certificado(company: str, uso: str | None = None, nombre: str | None = N
 		)
 
 	doc = frappe.get_doc(DOCTYPE, nombre)
-	clave, cert, cadena = leer_pkcs12(
-		contenido_adjunto(doc.certificado), doc.get_password("password")
-	)
+	clave, cert, cadena = leer_pkcs12(contenido_adjunto(doc.certificado), doc.get_password("password"))
 	cert_pem = cert.public_bytes(serialization.Encoding.PEM) + b"".join(
 		c.public_bytes(serialization.Encoding.PEM) for c in cadena
 	)
@@ -211,8 +207,8 @@ def archivos_pem(company: str, uso: str | None = None, nombre: str | None = None
 
 	Pensado para clientes HTTP que piden rutas (``requests``, ``zeep``)::
 
-		with archivos_pem("Mi Empresa", "sii") as (cert, key):
-			requests.post(url, data=xml, cert=(cert, key))
+	        with archivos_pem("Mi Empresa", "sii") as (cert, key):
+	            requests.post(url, data=xml, cert=(cert, key))
 	"""
 	datos = get_certificado(company, uso, nombre)
 	carpeta = tempfile.mkdtemp(prefix="sc-cert-")
@@ -259,9 +255,7 @@ def revisar_caducidad() -> dict:
 	avisados, actualizados = [], []
 	destinatarios = None
 
-	for cert in frappe.get_all(
-		DOCTYPE, fields=["name", "company", "titular", "valido_hasta", "estado"]
-	):
+	for cert in frappe.get_all(DOCTYPE, fields=["name", "company", "titular", "valido_hasta", "estado"]):
 		estado = estado_por_fecha(cert.valido_hasta, hoy)
 		if estado != cert.estado:
 			frappe.db.set_value(DOCTYPE, cert.name, "estado", estado, update_modified=False)

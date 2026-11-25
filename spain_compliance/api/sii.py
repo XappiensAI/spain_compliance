@@ -50,7 +50,9 @@ def _exigir_lectura():
 
 def _exigir_envio():
 	if not puede_enviar():
-		frappe.throw(_("Solo Accounts Manager o System Manager pueden comunicar con la AEAT."), frappe.PermissionError)
+		frappe.throw(
+			_("Solo Accounts Manager o System Manager pueden comunicar con la AEAT."), frappe.PermissionError
+		)
 
 
 def _lista(valor) -> list:
@@ -140,7 +142,12 @@ def registros(
 	or_filtros = None
 	if search:
 		like = f"%{search.strip()}%"
-		or_filtros = {"documento": ("like", like), "numero_factura": ("like", like), "tercero": ("like", like), "nif": ("like", like)}
+		or_filtros = {
+			"documento": ("like", like),
+			"numero_factura": ("like", like),
+			"tercero": ("like", like),
+			"nif": ("like", like),
+		}
 	campos = [
 		"name",
 		"libro",
@@ -179,9 +186,15 @@ def registros(
 		limit=limit,
 		ignore_permissions=True,
 	)
-	total = len(
-		frappe.get_all("SII Registro", filters=filtros, or_filters=or_filtros, pluck="name", ignore_permissions=True)
-	) if or_filtros else frappe.db.count("SII Registro", filtros)
+	total = (
+		len(
+			frappe.get_all(
+				"SII Registro", filters=filtros, or_filters=or_filtros, pluck="name", ignore_permissions=True
+			)
+		)
+		if or_filtros
+		else frappe.db.count("SII Registro", filtros)
+	)
 	hoy = getdate(today())
 	for f in filas:
 		f["vencido"] = bool(f.estado in _ABIERTOS and f.fecha_limite and getdate(f.fecha_limite) < hoy)

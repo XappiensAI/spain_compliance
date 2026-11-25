@@ -25,11 +25,7 @@ def _serie_compania(doctype, company, es_rect):
 
 
 def _otras(doctype, company):
-	return {
-		serie: comp
-		for (dt, comp, _r), serie in CONFIG.items()
-		if dt == doctype and comp != company
-	}
+	return {serie: comp for (dt, comp, _r), serie in CONFIG.items() if dt == doctype and comp != company}
 
 
 def _doc(**kw):

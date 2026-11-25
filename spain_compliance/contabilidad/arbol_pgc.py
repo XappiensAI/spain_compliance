@@ -393,7 +393,7 @@ def alinear_companias_pgc(aplicar: bool = True) -> list[dict]:
 def corregir_tipos_raiz(company: str, aplicar: bool = False) -> dict:
 	"""Pone a cada cuenta numerada de una compañía PGC el root_type de su naturaleza (``root_type_pgc``).
 
-	Para compañías montadas con la plantilla anterior, que tenía mal los grupos mixtos (470–473 como pasivo,
+	Para compañías montadas con la plantilla anterior, que tenía mal los grupos mixtos (470-473 como pasivo,
 	438 como activo…). Con ``aplicar=False`` solo lista lo que cambiaría. No toca asientos: cambia en qué lado
 	del balance sale la cuenta en los informes de Desk.
 
@@ -417,7 +417,10 @@ def corregir_tipos_raiz(company: str, aplicar: bool = False) -> dict:
 			frappe.db.set_value(
 				"Account",
 				c["name"],
-				{"root_type": c["a"], "report_type": "Profit and Loss" if c["a"] in ("Income", "Expense") else "Balance Sheet"},
+				{
+					"root_type": c["a"],
+					"report_type": "Profit and Loss" if c["a"] in ("Income", "Expense") else "Balance Sheet",
+				},
 				update_modified=False,
 			)
 		frappe.clear_cache(doctype="Account")

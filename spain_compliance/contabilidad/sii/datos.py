@@ -137,7 +137,9 @@ def _errores_lineas(lineas: list[dict]) -> list[str]:
 	errores = []
 	for ln in lineas:
 		if ln.get("tipo_impuesto") in (TIPO_IGIC, TIPO_IPSI):
-			errores.append(_("IGIC e IPSI no se comunican al SII de la AEAT (cuenta {0}).").format(ln.get("cuenta")))
+			errores.append(
+				_("IGIC e IPSI no se comunican al SII de la AEAT (cuenta {0}).").format(ln.get("cuenta"))
+			)
 		elif ln.get("tipo_impuesto") in (TIPO_IVA, TIPO_RE) and not ln.get("clave_iva"):
 			errores.append(_("Falta la clave de IVA en la fila de impuestos {0}.").format(ln.get("cuenta")))
 		elif not ln.get("tipo_impuesto") and (flt(ln.get("cuota")) or ln.get("cuenta") is None):
@@ -219,7 +221,9 @@ def desglose_emitida(lineas: list[dict], extranjera: bool, tipo_op_defecto: str)
 			b["no_sujeta_localizacion"] = importe(b["no_sujeta_localizacion"] + base)
 		else:
 			errores.append(
-				_("La clave {0} es de compras y no vale en una factura emitida ({1}).").format(clave, ln.get("cuenta"))
+				_("La clave {0} es de compras y no vale en una factura emitida ({1}).").format(
+					clave, ln.get("cuenta")
+				)
 			)
 
 	for tipo_op, res in recargos.items():
@@ -271,7 +275,9 @@ def desglose_recibida(lineas: list[dict]) -> dict:
 			no_sujetas += 1
 		else:
 			errores.append(
-				_("La clave {0} es de ventas y no vale en una factura recibida ({1}).").format(clave, ln.get("cuenta"))
+				_("La clave {0} es de ventas y no vale en una factura recibida ({1}).").format(
+					clave, ln.get("cuenta")
+				)
 			)
 	_aplicar_recargo(iva, recargos)
 	solo_no_sujeta = not iva and not isp and no_sujetas > 0
@@ -302,7 +308,9 @@ def _cuotas(lineas: list[dict]) -> float:
 
 
 def titular(company: str, config=None) -> dict:
-	nombre = (config and config.get("nombre_titular")) or frappe.db.get_value("Company", company, "company_name")
+	nombre = (config and config.get("nombre_titular")) or frappe.db.get_value(
+		"Company", company, "company_name"
+	)
 	nif = (config and config.get("nif_titular")) or frappe.db.get_value("Company", company, "tax_id")
 	nif = normalizar_identificador(nif)
 	if nif.startswith("ES") and nif_espanol_valido(nif[2:]):
@@ -323,7 +331,9 @@ def _descripcion(doctype: str, name: str, defecto: str | None) -> str:
 	texto = "; ".join(vistos)
 	if not texto:
 		texto = defecto or (
-			_("Venta de bienes y servicios") if doctype == "Sales Invoice" else _("Compra de bienes y servicios")
+			_("Venta de bienes y servicios")
+			if doctype == "Sales Invoice"
+			else _("Compra de bienes y servicios")
 		)
 	return texto[:500]
 
@@ -397,12 +407,16 @@ def datos_factura(doctype: str, name: str, config, lineas: list[dict] | None = N
 			break
 	if not nif:
 		party_type = "Customer" if doctype == "Sales Invoice" else "Supplier"
-		nif, tipo_id = frappe.db.get_value(party_type, cab.party, ["tax_id", "tipo_identificacion_fiscal"]) or (None, None)
+		nif, tipo_id = frappe.db.get_value(
+			party_type, cab.party, ["tax_id", "tipo_identificacion_fiscal"]
+		) or (None, None)
 	cp = contraparte(cab.party_name or cab.party, nif, tipo_id, pais)
 	if not (cp.get("nif") or (cp.get("id_otro") or {}).get("id")):
 		errores.append(_("El tercero {0} no tiene NIF ni identificador fiscal.").format(cab.party))
 	if cp.get("id_otro") and not cp["id_otro"].get("pais"):
-		errores.append(_("No se conoce el país del tercero {0}: indíquelo en su dirección.").format(cab.party))
+		errores.append(
+			_("No se conoce el país del tercero {0}: indíquelo en su dirección.").format(cab.party)
+		)
 
 	fecha_contable = getdate(cab.posting_date)
 	tipo_factura = "R1" if cab.is_return else "F1"
@@ -427,7 +441,10 @@ def datos_factura(doctype: str, name: str, config, lineas: list[dict] | None = N
 		"contraparte": cp,
 		"tercero": cab.party_name or cab.party,
 		"descripcion": _descripcion(doctype, name, (config or {}).get("descripcion_operacion")),
-		"importe_total": importe(flt(cab.base_net_total) * (-1 if cab.is_return and flt(cab.base_net_total) > 0 else 1) + _cuotas(lineas)),
+		"importe_total": importe(
+			flt(cab.base_net_total) * (-1 if cab.is_return and flt(cab.base_net_total) > 0 else 1)
+			+ _cuotas(lineas)
+		),
 		"no_aplica": False,
 	}
 

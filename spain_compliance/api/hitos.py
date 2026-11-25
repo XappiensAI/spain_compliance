@@ -200,8 +200,16 @@ def listar(incluir_facturados: int = 0) -> dict:
 		"Sales Order",
 		filters=filtros,
 		fields=[
-			"name", "customer", "customer_name", "project", "po_no", "currency", "company",
-			"net_total", "total", "conversion_rate",
+			"name",
+			"customer",
+			"customer_name",
+			"project",
+			"po_no",
+			"currency",
+			"company",
+			"net_total",
+			"total",
+			"conversion_rate",
 		],
 		order_by="transaction_date desc",
 		limit_page_length=0,
@@ -222,7 +230,14 @@ def listar(incluir_facturados: int = 0) -> dict:
 	facturas = _facturas(nombres)
 	con_proyecto = list({p.project for p in pedidos if p.project})
 	proyectos = (
-		dict(frappe.get_all("Project", filters={"name": ["in", con_proyecto]}, fields=["name", "project_name"], as_list=True))
+		dict(
+			frappe.get_all(
+				"Project",
+				filters={"name": ["in", con_proyecto]},
+				fields=["name", "project_name"],
+				as_list=True,
+			)
+		)
 		if con_proyecto
 		else {}
 	)
@@ -405,7 +420,9 @@ def factura_desde_hito(sales_order: str, fila: str) -> dict:
 
 	total = len(pedido.payment_schedule)
 	partes = [
-		_("Pedido del cliente {0}").format(pedido.po_no) if pedido.po_no else _("Pedido {0}").format(pedido.name),
+		_("Pedido del cliente {0}").format(pedido.po_no)
+		if pedido.po_no
+		else _("Pedido {0}").format(pedido.name),
 		_("{0}, hito {1} de {2}, {3} % de {4}").format(
 			_etiqueta(plazo, total),
 			plazo.idx,

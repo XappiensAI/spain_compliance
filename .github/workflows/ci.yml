@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [version-15]
+    branches: [version-15, version-16]
   pull_request:
 
 jobs:
@@ -13,9 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/ruff-action@v3
         with:
+          version: "0.17.6"
           args: check spain_compliance
       - uses: astral-sh/ruff-action@v3
         with:
+          version: "0.17.6"
           args: format --check spain_compliance
 
   frontend:

@@ -188,7 +188,14 @@ def _resumen_libro(lineas: list[dict], agrupar_clave=True):
 				continue
 			g = grupos.setdefault(
 				(ln["libro"], ln["clave_iva"] or ""),
-				{"libro": ln["libro"], "clave": ln["clave_iva"] or _("Sin clave"), "filas": 0, "base": 0.0, "cuota": 0.0, "deducible": 0.0},
+				{
+					"libro": ln["libro"],
+					"clave": ln["clave_iva"] or _("Sin clave"),
+					"filas": 0,
+					"base": 0.0,
+					"cuota": 0.0,
+					"deducible": 0.0,
+				},
 			)
 			g["filas"] += 1
 			g["base"] += flt(ln["base_imponible"])

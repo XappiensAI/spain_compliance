@@ -49,7 +49,9 @@ class CertificadoDigital(Document):
 	def _validar_adjunto_privado(self):
 		if self.certificado and not self.certificado.startswith("/private/files/"):
 			frappe.throw(
-				_("El certificado debe subirse como fichero privado. Bórralo y vuelve a adjuntarlo marcando «Privado»."),
+				_(
+					"El certificado debe subirse como fichero privado. Bórralo y vuelve a adjuntarlo marcando «Privado»."
+				),
 				title=_("Adjunto público"),
 			)
 
@@ -65,7 +67,9 @@ class CertificadoDigital(Document):
 			_clave, cert, _cadena = certificados.leer_pkcs12(contenido, self._password_en_claro())
 		except certificados.CertificadoInvalido:
 			frappe.throw(
-				_("No se puede abrir el certificado. Revisa la contraseña y que el fichero sea un .p12 / .pfx con clave privada."),
+				_(
+					"No se puede abrir el certificado. Revisa la contraseña y que el fichero sea un .p12 / .pfx con clave privada."
+				),
 				title=_("Certificado no válido"),
 			)
 

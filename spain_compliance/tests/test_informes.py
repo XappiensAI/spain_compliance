@@ -128,7 +128,14 @@ class TestInformes(FrappeTestCase):
 		inicio = f"{getdate(today).year}-01-01"
 		lineas = [
 			_linea(voucher_no="SI-IVA", base_imponible=100, cuota=21),
-			_linea(voucher_no="SI-IRPF", base_imponible=100, tipo_impositivo=15, cuota=15, tipo_impuesto="Retención IRPF", clave_iva=None),
+			_linea(
+				voucher_no="SI-IRPF",
+				base_imponible=100,
+				tipo_impositivo=15,
+				cuota=15,
+				tipo_impuesto="Retención IRPF",
+				clave_iva=None,
+			),
 			_linea(voucher_no="SI-OTRO", base_imponible=40, cuota=40, tipo_impuesto="Otro", clave_iva=None),
 			_linea(
 				libro="Recibidas",

@@ -13,6 +13,8 @@ CUSTOMER = "_Test SC Correl Cliente"
 ITEM = "_Test SC Correl Item"
 ITEM_GROUP = "_Test SC Correl Items"
 CUSTOMER_GROUP = "_Test SC Correl Clientes"
+
+
 def _ensure_masters():
 	today = getdate(nowdate())
 	if not frappe.db.sql(
@@ -32,7 +34,9 @@ def _ensure_masters():
 		("Item Group", ITEM_GROUP, "item_group_name", "All Item Groups"),
 	):
 		if not frappe.db.exists(doctype, name):
-			frappe.get_doc({"doctype": doctype, field: name, "parent_" + frappe.scrub(doctype): parent}).insert()
+			frappe.get_doc(
+				{"doctype": doctype, field: name, "parent_" + frappe.scrub(doctype): parent}
+			).insert()
 
 	if not frappe.db.exists("Company", COMPANY):
 		frappe.get_doc(

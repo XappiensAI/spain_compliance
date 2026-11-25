@@ -92,10 +92,14 @@ class TestDesglose(FrappeTestCase):
 		)
 		self.assertEqual(d["errores"], [])
 		s1 = d["desglose"]["DesgloseFactura"]["no_exentas"]["S1"]
-		self.assertEqual(sorted((x["tipo"], x["base"], x["cuota"]) for x in s1), [(10.0, 50, 5), (21.0, 110, 23.1)])
+		self.assertEqual(
+			sorted((x["tipo"], x["base"], x["cuota"]) for x in s1), [(10.0, 50, 5), (21.0, 110, 23.1)]
+		)
 
 	def test_intracomunitaria_y_exportacion(self):
-		d = desglose_emitida([linea("E5 - Exenta art. 25", 500), linea("N2 - No sujeta", 80)], True, "PrestacionServicios")
+		d = desglose_emitida(
+			[linea("E5 - Exenta art. 25", 500), linea("N2 - No sujeta", 80)], True, "PrestacionServicios"
+		)
 		self.assertEqual(d["desglose"]["Entrega"]["exentas"], {"E5": 500})
 		self.assertEqual(d["desglose"]["PrestacionServicios"]["no_sujeta_localizacion"], 80)
 		self.assertFalse(d["exportacion"])
@@ -103,7 +107,10 @@ class TestDesglose(FrappeTestCase):
 
 	def test_recargo_en_el_mismo_detalle(self):
 		d = desglose_emitida(
-			[linea("S1 - Sujeta", 100, 21), linea("S1 - Sujeta", 100, 5.2, 5.2, impuesto="Recargo de equivalencia")],
+			[
+				linea("S1 - Sujeta", 100, 21),
+				linea("S1 - Sujeta", 100, 5.2, 5.2, impuesto="Recargo de equivalencia"),
+			],
 			False,
 			"Entrega",
 		)
@@ -175,8 +182,18 @@ class TestXML(FrappeTestCase):
 		f = factura(
 			tipo_factura="R1",
 			rectificada={"numero": "FV2600001", "fecha": date(2026, 12, 1)},
-			contraparte={"nombre": "CLIENTE FR", "id_otro": {"pais": "FR", "tipo": "02", "id": "FR12345678901"}},
-			desglose={"Entrega": {"exentas": {"E5": -50.0}, "no_exentas": {}, "no_sujeta_7_14": 0, "no_sujeta_localizacion": 0}},
+			contraparte={
+				"nombre": "CLIENTE FR",
+				"id_otro": {"pais": "FR", "tipo": "02", "id": "FR12345678901"},
+			},
+			desglose={
+				"Entrega": {
+					"exentas": {"E5": -50.0},
+					"no_exentas": {},
+					"no_sujeta_7_14": 0,
+					"no_sujeta_localizacion": 0,
+				}
+			},
 		)
 		xml = X.mensaje_alta("Expedidas", TIT, [f], "A0")
 		self.assertEqual(texto(xml, "TipoRectificativa"), ["I"])
@@ -224,7 +241,9 @@ class RegistroFalso(dict):
 	"""Lo justo de un SII Registro para probar la máquina de estados sin BD."""
 
 	def __init__(self, **kw):
-		super().__init__({"estado": "Pendiente", "tipo_comunicacion": "A0", "entorno": None, "intentos": 0, **kw})
+		super().__init__(
+			{"estado": "Pendiente", "tipo_comunicacion": "A0", "entorno": None, "intentos": 0, **kw}
+		)
 		self.eventos = []
 		self.guardado = 0
 
@@ -247,7 +266,16 @@ def respuesta(*lineas, csv="CSV1"):
 
 
 def linea_resp(numero, estado, codigo=None, dup=None):
-	return {"numero": numero, "nif_emisor": TIT["nif"], "estado": estado, "codigo": codigo, "descripcion": None, "csv": None, "xml": "<x/>", "duplicado": dup}
+	return {
+		"numero": numero,
+		"nif_emisor": TIT["nif"],
+		"estado": estado,
+		"codigo": codigo,
+		"descripcion": None,
+		"csv": None,
+		"xml": "<x/>",
+		"duplicado": dup,
+	}
 
 
 class TestEstados(FrappeTestCase):
@@ -269,7 +297,9 @@ class TestEstados(FrappeTestCase):
 
 	def test_alta_correcta(self):
 		reg, f = self.par()
-		out = self.R._procesar_respuesta([(reg, f)], respuesta(linea_resp("FV1", "Correcto")), "Expedidas", "Pruebas", "Alta", False, "A0")
+		out = self.R._procesar_respuesta(
+			[(reg, f)], respuesta(linea_resp("FV1", "Correcto")), "Expedidas", "Pruebas", "Alta", False, "A0"
+		)
 		self.assertEqual(out, [])
 		self.assertEqual((reg.estado, reg.tipo_comunicacion, reg.csv), ("Aceptado", "A1", "CSV1"))
 
@@ -277,7 +307,9 @@ class TestEstados(FrappeTestCase):
 		for previo in ("Correcta", "AceptadaConErrores", "Anulada"):
 			reg, f = self.par()
 			linea = linea_resp("FV1", "Incorrecto", "3000", {"estado": previo})
-			out = self.R._procesar_respuesta([(reg, f)], respuesta(linea), "Expedidas", "Pruebas", "Alta", False, "A0")
+			out = self.R._procesar_respuesta(
+				[(reg, f)], respuesta(linea), "Expedidas", "Pruebas", "Alta", False, "A0"
+			)
 			self.assertEqual(len(out), 1, previo)
 			# No se da por aceptada hasta que la AEAT acepte el A1.
 			self.assertEqual(reg.estado, "Pendiente")
@@ -290,7 +322,9 @@ class TestEstados(FrappeTestCase):
 
 	def test_baja_correcta(self):
 		reg, f = self.par(estado="Baja pendiente")
-		self.R._procesar_respuesta([(reg, f)], respuesta(linea_resp("FV1", "Correcto")), "Expedidas", "Pruebas", "Baja", True, None)
+		self.R._procesar_respuesta(
+			[(reg, f)], respuesta(linea_resp("FV1", "Correcto")), "Expedidas", "Pruebas", "Baja", True, None
+		)
 		self.assertEqual(reg.estado, "Dado de baja")
 
 	def test_factura_ausente_en_la_respuesta(self):
@@ -307,7 +341,11 @@ class TestEstados(FrappeTestCase):
 			TIT,
 			"2027",
 			"01",
-			paginacion={"id_otro": {"pais": "IT", "tipo": "02", "id": "IT12345678901"}, "numero": "A1", "fecha": "02-01-2027"},
+			paginacion={
+				"id_otro": {"pais": "IT", "tipo": "02", "id": "IT12345678901"},
+				"numero": "A1",
+				"fecha": "02-01-2027",
+			},
 		)
 		self.assertEqual(texto(xml, "IDType"), ["02"])
 		self.assertNotIn("IT12345678901", texto(xml, "NIF"))

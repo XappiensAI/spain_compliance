@@ -98,7 +98,9 @@ def validate_party(doc, method=None):
 
 	frappe.msgprint(
 		_("El identificador fiscal {0} de {1} no parece {2}.").format(
-			frappe.bold(identificador), frappe.bold(doc.get("customer_name") or doc.get("supplier_name") or doc.name), esperado
+			frappe.bold(identificador),
+			frappe.bold(doc.get("customer_name") or doc.get("supplier_name") or doc.name),
+			esperado,
 		),
 		indicator="orange",
 		alert=True,

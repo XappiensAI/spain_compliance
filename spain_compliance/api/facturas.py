@@ -88,7 +88,13 @@ def _dependientes(doctype: str) -> dict:
 			"language",
 			*t["extra"],
 		),
-		"company": (t["cuenta"], "company_address", "company_address_display", "cost_center", "taxes_and_charges"),
+		"company": (
+			t["cuenta"],
+			"company_address",
+			"company_address_display",
+			"cost_center",
+			"taxes_and_charges",
+		),
 		"posting_date": ("due_date",),
 		"bill_date": ("due_date",),
 		t["direccion"]: ("address_display",),
@@ -251,7 +257,14 @@ def _aplicar_cambio(doc, cambio: dict | None) -> None:
 	elif campo == "company":
 		doc.set("taxes", [])
 		for row in doc.get("items") or []:
-			for k in ("income_account", "expense_account", "cost_center", "warehouse", "item_tax_template", "item_tax_rate"):
+			for k in (
+				"income_account",
+				"expense_account",
+				"cost_center",
+				"warehouse",
+				"item_tax_template",
+				"item_tax_rate",
+			):
 				row.set(k, None)
 	elif campo == "taxes_and_charges":
 		doc.set("taxes", [])
@@ -276,7 +289,7 @@ def _reiniciar_precios(doc, solo_de_tarifa: bool) -> None:
 	previos = {}
 	for row in doc.get("items") or []:
 		plr = flt(row.price_list_rate)
-		# Precio que sale de la tarifa: tarifa (+ margen) − descuento, como `calculate_item_rate`.
+		# Precio que sale de la tarifa: tarifa (+ margen) - descuento, como `calculate_item_rate`.
 		esperado = flt(row.rate_with_margin or plr) - flt(row.discount_amount)
 		de_tarifa = bool(plr) and abs(flt(row.rate) - esperado) < 0.005
 		if solo_de_tarifa and not de_tarifa:
@@ -359,7 +372,9 @@ def _plantilla_activa(doc, avisos: list[str]) -> list[str]:
 	doc.taxes_and_charges = None
 	avisos = list(avisos)
 	avisos.append(
-		_("La plantilla de impuestos {0} está desactivada. Se mantienen sus filas de impuestos sin plantilla.").format(actual)
+		_(
+			"La plantilla de impuestos {0} está desactivada. Se mantienen sus filas de impuestos sin plantilla."
+		).format(actual)
 	)
 	return avisos
 
@@ -598,7 +613,9 @@ def configuracion(doctype: str = "Sales Invoice") -> dict:
 	return {
 		"doctype": doctype,
 		"campos": campos(meta),
-		"tablas": {campo: {"doctype": dt, "campos": campos(frappe.get_meta(dt))} for campo, dt in tablas.items()},
+		"tablas": {
+			campo: {"doctype": dt, "campos": campos(frappe.get_meta(dt))} for campo, dt in tablas.items()
+		},
 		"dimensiones": dimensiones,
 		"companias": companias,
 		"compania_defecto": frappe.defaults.get_user_default("Company")

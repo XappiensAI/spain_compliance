@@ -207,7 +207,9 @@ def _factura_recibida(registro, f: dict, titular: dict):
 def mensaje_alta(libro: str, titular: dict, facturas: list[dict], tipo_comunicacion: str = "A0") -> bytes:
 	"""SuministroLRFacturasEmitidas / SuministroLRFacturasRecibidas."""
 	emitidas = libro == "Expedidas"
-	env, cuerpo = _sobre(NS_LR, "SuministroLRFacturasEmitidas" if emitidas else "SuministroLRFacturasRecibidas")
+	env, cuerpo = _sobre(
+		NS_LR, "SuministroLRFacturasEmitidas" if emitidas else "SuministroLRFacturasRecibidas"
+	)
 	_cabecera(cuerpo, titular, tipo_comunicacion)
 	for f in facturas:
 		reg = _sub(cuerpo, NS_LR, "RegistroLRFacturasEmitidas" if emitidas else "RegistroLRFacturasRecibidas")
@@ -330,7 +332,13 @@ def _id_respuesta(el) -> dict:
 		"nif_emisor": _texto(em, "NIF") or _texto(em, "ID"),
 		# Para la ClavePaginacion: el emisor tal como lo devuelve la AEAT.
 		"emisor": (
-			{"id_otro": {"pais": _texto(otro, "CodigoPais"), "tipo": _texto(otro, "IDType"), "id": _texto(otro, "ID")}}
+			{
+				"id_otro": {
+					"pais": _texto(otro, "CodigoPais"),
+					"tipo": _texto(otro, "IDType"),
+					"id": _texto(otro, "ID"),
+				}
+			}
 			if otro is not None
 			else {"nif": _texto(em, "NIF")}
 		),

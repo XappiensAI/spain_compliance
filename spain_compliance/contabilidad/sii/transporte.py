@@ -17,7 +17,14 @@ class ErrorComunicacion(Exception):
 	"""No se pudo hablar con la AEAT (red, TLS, HTTP distinto de 200 sin SOAP)."""
 
 
-def llamar(company: str, libro: str, mensaje: bytes, entorno: str, sello: bool = False, certificado: str | None = None) -> bytes:
+def llamar(
+	company: str,
+	libro: str,
+	mensaje: bytes,
+	entorno: str,
+	sello: bool = False,
+	certificado: str | None = None,
+) -> bytes:
 	"""POST del mensaje SOAP y devuelve el cuerpo de la respuesta.
 
 	La AEAT responde 200 con la respuesta SII y 500 con un SOAP Fault; los dos se
