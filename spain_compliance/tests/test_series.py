@@ -13,10 +13,10 @@ from spain_compliance.contabilidad import series
 MOD = "spain_compliance.contabilidad.series"
 
 CONFIG = {
-	("Sales Invoice", "SRG", False): "FV.YY.#####",
-	("Sales Invoice", "SRG", True): "AV.YY.#####",
-	("Sales Invoice", "KDK", False): "KFV.YY.#####",
-	("Sales Invoice", "KDK", True): "KAV.YY.#####",
+	("Sales Invoice", "AAA", False): "FV.YY.#####",
+	("Sales Invoice", "AAA", True): "AV.YY.#####",
+	("Sales Invoice", "BBB", False): "BFV.YY.#####",
+	("Sales Invoice", "BBB", True): "BAV.YY.#####",
 }
 
 
@@ -37,27 +37,27 @@ def _doc(**kw):
 @patch(f"{MOD}.serie_compania", side_effect=_serie_compania)
 class TestAplicarSerie(unittest.TestCase):
 	def test_vacia_toma_la_de_la_compania(self, *_):
-		doc = _doc(company="SRG")
+		doc = _doc(company="AAA")
 		series.aplicar_serie(doc)
 		self.assertEqual(doc.naming_series, "FV.YY.#####")
 
 	def test_por_defecto_se_sustituye(self, *_):
-		doc = _doc(company="KDK", naming_series="ACC-SINV-.YYYY.-")
+		doc = _doc(company="BBB", naming_series="ACC-SINV-.YYYY.-")
 		series.aplicar_serie(doc)
-		self.assertEqual(doc.naming_series, "KFV.YY.#####")
+		self.assertEqual(doc.naming_series, "BFV.YY.#####")
 
 	def test_serie_de_otra_compania_se_sustituye(self, *_):
-		doc = _doc(company="KDK", naming_series="FV.YY.#####")
+		doc = _doc(company="BBB", naming_series="FV.YY.#####")
 		series.aplicar_serie(doc)
-		self.assertEqual(doc.naming_series, "KFV.YY.#####")
+		self.assertEqual(doc.naming_series, "BFV.YY.#####")
 
 	def test_serie_elegida_a_mano_se_respeta(self, *_):
-		doc = _doc(company="SRG", naming_series="FVC.YY.#####")
+		doc = _doc(company="AAA", naming_series="FVC.YY.#####")
 		series.aplicar_serie(doc)
 		self.assertEqual(doc.naming_series, "FVC.YY.#####")
 
 	def test_rectificativa_sale_de_la_ordinaria(self, *_):
-		doc = _doc(company="SRG", is_return=1, naming_series="FV.YY.#####")
+		doc = _doc(company="AAA", is_return=1, naming_series="FV.YY.#####")
 		series.aplicar_serie(doc)
 		self.assertEqual(doc.naming_series, "AV.YY.#####")
 
@@ -72,10 +72,10 @@ class TestAplicarSerie(unittest.TestCase):
 class TestValidarSerie(unittest.TestCase):
 	def test_serie_de_otra_compania_bloquea(self, *_):
 		with self.assertRaises(frappe.ValidationError):
-			series.validar_serie(_doc(company="KDK", naming_series="FV.YY.#####"))
+			series.validar_serie(_doc(company="BBB", naming_series="FV.YY.#####"))
 
 	def test_serie_propia_ok(self, *_):
-		series.validar_serie(_doc(company="SRG", naming_series="AV.YY.#####"))
+		series.validar_serie(_doc(company="AAA", naming_series="AV.YY.#####"))
 
 	def test_serie_libre_ok(self, *_):
-		series.validar_serie(_doc(company="SRG", naming_series="FVC.YY.#####"))
+		series.validar_serie(_doc(company="AAA", naming_series="FVC.YY.#####"))

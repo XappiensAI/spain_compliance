@@ -4,8 +4,14 @@
 """Hitos de facturación: el calendario de pagos de las órdenes de venta.
 
 Cada fila de la tabla Payment Schedule de una orden de venta validada es un hito.
-Si el sitio tiene el seguimiento de proyectos (``SRG Hito Facturacion``), se añade
-el estado y la nota que marca el jefe de proyecto.
+Si otra app del sitio lleva el seguimiento de los hitos (hook ``hitos_seguimiento``), se
+añade el estado, el avance y la nota que da.
+
+Lo que se factura es el hito, no las líneas del pedido: la factura lleva una sola línea,
+sin artículo, con el nombre del hito, su porcentaje y su importe sobre la base del pedido.
+Esa línea va ligada a la orden (``sales_order``) pero no a una línea de ella, así que aquí se
+reparte lo facturado entre las líneas del pedido (``actualizar_pedidos``) y se comprueba que
+no se factura más que su total (``validar_total_pedido``).
 
 Lo facturado se sabe por las líneas de factura ligadas a la orden. La factura creada
 desde un hito guarda la fila en ``hito_pedido``. Las ligadas sin esa marca se asignan
@@ -14,15 +20,18 @@ a los hitos por orden, saltando los que el seguimiento ya da por facturados.
 
 from __future__ import annotations
 
+import re
+
 import frappe
 from frappe import _
-from frappe.utils import flt, fmt_money, nowdate
+from frappe.utils import escape_html, flt, fmt_money, nowdate
 
 from spain_compliance.api.facturas import _rellenar, _respuesta
 
-SEGUIMIENTO = "SRG Hito Facturacion"
 # Margen para dar un hito por cubierto (puntos porcentuales del pedido).
 TOLERANCIA = 0.5
+# Margen de redondeo al comparar lo facturado con el total del pedido (moneda del pedido).
+MARGEN_IMPORTE = 0.5
 
 
 def _etiqueta(fila, total: int) -> str:
@@ -34,16 +43,26 @@ def _etiqueta(fila, total: int) -> str:
 	return _("Facturación del pedido") if total <= 1 else _("Hito {0}").format(int(fila.idx or 0))
 
 
+def _bases(neto: float, porcentajes: list[float]) -> list[float]:
+	"""Base de cada hito sobre el neto del pedido. Si suman 100, el último absorbe el redondeo."""
+	bases = [flt(flt(neto) * flt(p) / 100, 2) for p in porcentajes]
+	if bases and abs(sum(flt(p) for p in porcentajes) - 100) < 0.01:
+		bases[-1] = flt(flt(neto) - sum(bases[:-1]), 2)
+	return bases
+
+
 def _seguimiento(pedidos: list[str]) -> dict:
-	if not pedidos or not frappe.db.exists("DocType", SEGUIMIENTO):
-		return {}
-	filas = frappe.get_all(
-		SEGUIMIENTO,
-		filters={"sales_order": ["in", pedidos], "payment_schedule_row": ["is", "set"]},
-		fields=["payment_schedule_row", "billing_status", "progress_percent", "progress_note"],
-		ignore_permissions=True,
-	)
-	return {f.payment_schedule_row: f for f in filas}
+	"""Seguimiento de los hitos según las funciones del hook ``hitos_seguimiento``.
+
+	Cada una recibe los pedidos y devuelve, por fila del calendario de pagos, un dict con
+	``billing_status``, ``progress_percent`` y ``progress_note``. Con «Facturado» el hito se da
+	por facturado; cualquier otro estado se enseña tal cual.
+	"""
+	salida: dict = {}
+	if pedidos:
+		for ruta in frappe.get_hooks("hitos_seguimiento"):
+			salida.update(frappe.get_attr(ruta)(pedidos) or {})
+	return salida
 
 
 def _facturas(pedidos: list[str]) -> dict[str, list[dict]]:
@@ -58,7 +77,7 @@ def _facturas(pedidos: list[str]) -> dict[str, list[dict]]:
 	filas = frappe.db.sql(
 		f"""
 		SELECT si.name, si.docstatus, si.posting_date, si.is_return, si.return_against,
-			{hito} AS hito_pedido, sii.sales_order, SUM(sii.amount) AS importe
+			{hito} AS hito_pedido, sii.sales_order, SUM(sii.net_amount) AS importe
 		FROM `tabSales Invoice Item` sii
 		JOIN `tabSales Invoice` si ON si.name = sii.parent
 		LEFT JOIN `tabSales Invoice` orig ON orig.name = si.return_against
@@ -103,15 +122,14 @@ def _con_factura(hitos: list[dict], nombre: str | None) -> dict | None:
 	return next((h for h in hitos if any(x["name"] == nombre for x in h["facturas"])), None)
 
 
-def _asignar(hitos: list[dict], facturas: list[dict], total_lineas: float) -> None:
+def _asignar(hitos: list[dict], facturas: list[dict], neto_pedido: float) -> None:
 	"""Reparte las facturas del pedido entre sus hitos (ver docstring del módulo).
 
-	La parte de cada factura es la suma de sus líneas entre la suma de las líneas del pedido,
-	las dos antes del descuento sobre el total.
+	La parte de cada factura es el neto de sus líneas entre el neto del pedido.
 	"""
 	por_fila = {h["fila"]: h for h in hitos}
 	for f in facturas:  # primero las facturas, luego las rectificativas
-		parte = flt(f.importe) / total_lineas * 100 if total_lineas else 0
+		parte = flt(f.importe) / neto_pedido * 100 if neto_pedido else 0
 		factura = _factura(f, parte, f.importe)
 		destino = por_fila.get(f.hito_pedido)
 		if not destino and f.is_return:
@@ -208,7 +226,6 @@ def listar(incluir_facturados: int = 0) -> dict:
 			"currency",
 			"company",
 			"net_total",
-			"total",
 			"conversion_rate",
 		],
 		order_by="transaction_date desc",
@@ -249,10 +266,10 @@ def listar(incluir_facturados: int = 0) -> dict:
 	for p in pedidos:
 		filas = calendario.get(p.name) or []
 		hitos = []
-		for fila in filas:
+		bases = _bases(p.net_total, [fila.invoice_portion for fila in filas])
+		for fila, base in zip(filas, bases, strict=True):
 			marca = seguimiento.get(fila.name) or {}
 			porcentaje = flt(fila.invoice_portion)
-			base = flt(flt(p.net_total) * porcentaje / 100, 2)
 			hitos.append(
 				{
 					"fila": fila.name,
@@ -279,7 +296,7 @@ def listar(incluir_facturados: int = 0) -> dict:
 				}
 			)
 		if hitos:
-			_asignar(hitos, facturas.get(p.name) or [], flt(p.total) or flt(p.net_total))
+			_asignar(hitos, facturas.get(p.name) or [], flt(p.net_total))
 		salida += hitos
 
 	_por_proyecto(salida)
@@ -323,47 +340,180 @@ def validar_hito_unico(doc, method=None) -> None:
 		frappe.throw(_("Este hito del pedido ya tiene la factura {0}.").format(otra))
 
 
+def _neto_facturado(pedido: str, salvo: str | None = None) -> float:
+	"""Neto de las líneas de factura validadas ligadas al pedido (las rectificativas restan)."""
+	return flt(
+		frappe.db.sql(
+			"""
+			SELECT SUM(sii.net_amount) FROM `tabSales Invoice Item` sii
+			JOIN `tabSales Invoice` si ON si.name = sii.parent
+			WHERE sii.sales_order = %s AND si.docstatus = 1 AND si.name != %s
+			""",
+			(pedido, salvo or ""),
+		)[0][0]
+	)
+
+
+# Líneas de factura de un hito: ligadas al pedido y no a una de sus líneas, en una factura
+# creada desde un hito o en su rectificativa (que solo cuenta si ERPNext la contaría).
+_LINEAS_HITO = """
+	FROM `tabSales Invoice Item` sii
+	JOIN `tabSales Invoice` si ON si.name = sii.parent
+	LEFT JOIN `tabSales Invoice` orig ON orig.name = si.return_against
+	WHERE sii.sales_order = %(pedido)s AND IFNULL(sii.so_detail, '') = ''
+		AND COALESCE(NULLIF(si.hito_pedido, ''), NULLIF(orig.hito_pedido, '')) IS NOT NULL
+		AND si.docstatus = 1 AND (si.is_return = 0 OR si.update_billed_amount_in_sales_order = 1)
+"""
+
+
+def _pedidos_por_hitos(doc) -> list[str]:
+	"""Pedidos de la factura que se facturan por hitos con una línea por hito."""
+	if not doc.meta.has_field("hito_pedido"):
+		return []
+	es_hito = bool(doc.get("hito_pedido")) or bool(
+		doc.get("return_against") and frappe.db.get_value("Sales Invoice", doc.return_against, "hito_pedido")
+	)
+	salida = []
+	for pedido in dict.fromkeys(i.sales_order for i in doc.items if i.get("sales_order")):
+		propia = es_hito and any(i.sales_order == pedido and not i.get("so_detail") for i in doc.items)
+		if propia or frappe.db.sql(f"SELECT 1 {_LINEAS_HITO} LIMIT 1", {"pedido": pedido}):
+			salida.append(pedido)
+	return salida
+
+
+def validar_total_pedido(doc, method=None) -> None:
+	"""doc_event validate: en un pedido facturado por hitos no se factura más que su total.
+
+	ERPNext lo comprueba línea a línea, y la línea de un hito no corresponde a ninguna.
+	"""
+	if doc.get("is_return"):
+		return
+	ajustes = frappe.get_cached_doc("Accounts Settings")
+	rol = ajustes.get("role_allowed_to_over_bill")
+	if rol and rol in frappe.get_roles():
+		return
+	for pedido in _pedidos_por_hitos(doc):
+		neto = flt(frappe.db.get_value("Sales Order", pedido, "net_total"))
+		propio = sum(flt(i.net_amount) for i in doc.items if i.get("sales_order") == pedido)
+		previo = _neto_facturado(pedido, salvo=doc.name)
+		maximo = neto * (1 + flt(ajustes.get("over_billing_allowance")) / 100)
+		if previo + propio > maximo + MARGEN_IMPORTE:
+			frappe.throw(
+				_(
+					"La orden de venta {0} tiene un total de {1} sin impuestos y ya hay {2} facturados. "
+					"Esta factura la pasaría en {3}."
+				).format(
+					pedido,
+					fmt_money(neto, precision=2, currency=doc.currency),
+					fmt_money(previo, precision=2, currency=doc.currency),
+					fmt_money(previo + propio - neto, precision=2, currency=doc.currency),
+				)
+			)
+
+
+def actualizar_pedidos(doc, method=None) -> None:
+	"""doc_event on_submit/on_cancel: reparte lo facturado por hitos entre las líneas del pedido.
+
+	Así el «% facturado» y el estado del pedido, y lo que depende de ellos, siguen siendo ciertos.
+	"""
+	for pedido in _pedidos_por_hitos(doc):
+		neto = flt(frappe.db.get_value("Sales Order", pedido, "net_total"))
+		por_hitos = flt(frappe.db.sql(f"SELECT SUM(sii.net_amount) {_LINEAS_HITO}", {"pedido": pedido})[0][0])
+		parte = por_hitos / neto if neto else 0
+		directo = dict(
+			frappe.db.sql(
+				"""
+				SELECT sii.so_detail, SUM(sii.amount) FROM `tabSales Invoice Item` sii
+				JOIN `tabSales Invoice` si ON si.name = sii.parent
+				WHERE sii.sales_order = %s AND IFNULL(sii.so_detail, '') != '' AND si.docstatus = 1
+					AND (si.is_return = 0 OR si.update_billed_amount_in_sales_order = 1)
+				GROUP BY sii.so_detail
+				""",
+				pedido,
+			)
+		)
+		for linea in frappe.get_all(
+			"Sales Order Item", filters={"parent": pedido}, fields=["name", "amount"], ignore_permissions=True
+		):
+			frappe.db.set_value(
+				"Sales Order Item",
+				linea.name,
+				"billed_amt",
+				flt(flt(directo.get(linea.name)) + flt(linea.amount) * parte, 2),
+				update_modified=False,
+			)
+		doc._update_percent_field(
+			{
+				"name": pedido,
+				"target_parent_dt": "Sales Order",
+				"target_parent_field": "per_billed",
+				"target_dt": "Sales Order Item",
+				"target_ref_field": "amount",
+				"target_field": "billed_amt",
+				"status_field": "billing_status",
+				"keyword": "Billed",
+			}
+		)
+
+
 def _porcentaje(valor) -> str:
 	"""30 → «30», 8.666 → «8,666»."""
 	return f"{flt(valor):.3f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
-def _escalar_linea(linea, origen, parte: float) -> bool:
-	"""Precio de la línea del pedido por la parte del hito, sin pasar de lo pendiente de facturar."""
-	importe = flt(origen.amount)
-	if not importe:
-		return False
-	objetivo = importe * parte
-	restante = importe - flt(origen.billed_amt)
-	if abs(objetivo) > abs(restante):
-		objetivo = restante
-	if abs(objetivo) < 0.005 or (objetivo > 0) != (importe > 0):
-		return False
-	f = objetivo / importe
-	linea.qty = origen.qty
-	linea.stock_qty = flt(origen.qty) * flt(origen.conversion_factor or 1)
-	linea.price_list_rate = flt(origen.price_list_rate) * f
-	linea.discount_percentage = flt(origen.discount_percentage)
-	linea.discount_amount = flt(origen.discount_amount) * f
-	linea.rate_with_margin = flt(origen.rate_with_margin) * f
-	linea.margin_rate_or_amount = (
-		flt(origen.margin_rate_or_amount) * f
-		if origen.margin_type == "Amount"
-		else flt(origen.margin_rate_or_amount)
-	)
-	linea.rate = flt(origen.rate) * f
-	linea.amount = flt(linea.rate) * flt(linea.qty)
-	return True
+def _linea_hito(pedido, plazo, importe: float, cuenta: str | None, centro: str | None) -> dict:
+	"""La única línea de la factura: nombre del hito, su porcentaje y su importe."""
+	pct = _porcentaje(plazo.invoice_portion)
+	nombre = _etiqueta(plazo, len(pedido.payment_schedule))
+	# «Entrega 50%» ya dice el porcentaje.
+	if not re.search(rf"(?<![\d.,]){re.escape(pct)}\s*%", nombre):
+		nombre = f"{nombre[: 138 - len(pct) - 4]} — {pct} %"
+	idioma = (
+		frappe.get_cached_value("Customer", pedido.customer, "language") or pedido.get("language") or ""
+	).lower()
+	de, proyecto = ("of", "Project") if idioma.startswith("en") else ("de", "Proyecto")
+	descripcion = f"{pct} % {de} {fmt_money(pedido.net_total, precision=2)} {pedido.currency}"
+	if pedido.project:
+		titulo = frappe.get_cached_value("Project", pedido.project, "project_name") or ""
+		descripcion += f"<br>{proyecto} {escape_html(pedido.project)}"
+		if titulo and titulo != pedido.project:
+			descripcion += f" · {escape_html(titulo)}"
+	uom = frappe.db.get_single_value("Stock Settings", "stock_uom") or "Nos"
+	return {
+		"item_name": nombre,
+		"description": descripcion,
+		"qty": 1,
+		"uom": uom,
+		"stock_uom": uom,
+		"conversion_factor": 1,
+		"stock_qty": 1,
+		"rate": importe,
+		"amount": importe,
+		"income_account": cuenta,
+		"cost_center": centro,
+		"project": pedido.project,
+		"sales_order": pedido.name,
+	}
+
+
+def _cuenta_principal(lineas, importes: dict[str, float], campo: str) -> tuple[str | None, bool]:
+	"""Valor del campo con más importe entre las líneas, y si hay más de uno."""
+	suma: dict[str, float] = {}
+	for linea in lineas:
+		if linea.get(campo):
+			suma[linea.get(campo)] = suma.get(linea.get(campo), 0) + abs(flt(importes.get(linea.so_detail)))
+	return (max(suma, key=suma.get) if suma else None), len(suma) > 1
 
 
 @frappe.whitelist()
 def factura_desde_hito(sales_order: str, fila: str) -> dict:
 	"""Factura de venta sin guardar con lo que factura un hito del pedido.
 
-	Copia el pedido (cliente, proyecto, pedido del cliente, cuentas) con el precio de cada línea
-	por el porcentaje del hito. Los impuestos son los del pedido si tienen plantilla activa; si
-	no, los de una factura nueva para ese cliente. El vencimiento sale de las condiciones del
-	cliente, no del calendario del pedido.
+	Copia la cabecera del pedido (cliente, proyecto, pedido del cliente) y lleva una sola línea,
+	la del hito, con su porcentaje sobre la base imponible del pedido (los descuentos ya
+	descontados). La cuenta de ingresos es la de más importe del pedido. Los impuestos son los
+	del pedido si tienen plantilla activa; si no, los de una factura nueva para ese cliente. El
+	vencimiento sale de las condiciones del cliente, no del calendario del pedido.
 	"""
 	frappe.has_permission("Sales Invoice", "create", throw=True)
 	pedido = frappe.get_doc("Sales Order", sales_order)
@@ -381,21 +531,33 @@ def factura_desde_hito(sales_order: str, fila: str) -> dict:
 	from erpnext.selling.doctype.sales_order.sales_order import make_sales_invoice
 
 	factura = make_sales_invoice(pedido.name)
-	parte = flt(plazo.invoice_portion) / 100
-	origen = {i.name: i for i in pedido.items}
-	lineas = [
-		linea
-		for linea in factura.items
-		if origen.get(linea.so_detail) and _escalar_linea(linea, origen[linea.so_detail], parte)
-	]
-	if not lineas:
+	filas = pedido.payment_schedule
+	bases = _bases(pedido.net_total, [r.invoice_portion for r in filas])
+	base = next(b for r, b in zip(filas, bases, strict=True) if r.name == plazo.name)
+	importe = min(base, flt(flt(pedido.net_total) - _neto_facturado(pedido.name), 2))
+	if importe < 0.005:
 		frappe.throw(_("No queda nada por facturar en la orden de venta {0}.").format(sales_order))
-	for i, linea in enumerate(lineas, 1):
-		linea.idx = i
-	factura.set("items", lineas)
-	# Los impuestos del pedido solo valen si llevan una plantilla activa. Muchos pedidos del
-	# portal no traen impuestos o traen una plantilla retirada: entonces se deciden como en una
-	# factura nueva (reglas de impuestos por país del cliente o plantilla por defecto).
+	parte = importe / flt(pedido.net_total)
+
+	importes = {i.name: i.net_amount for i in pedido.items}
+	cuenta, varias_cuentas = _cuenta_principal(factura.items, importes, "income_account")
+	centro, _varios = _cuenta_principal(factura.items, importes, "cost_center")
+	if not cuenta:
+		cuenta = frappe.get_cached_value("Company", pedido.company, "default_income_account")
+	if not centro:
+		centro = frappe.get_cached_value("Company", pedido.company, "cost_center")
+
+	factura.set("items", [])
+	factura.set("packed_items", [])
+	factura.append("items", _linea_hito(pedido, plazo, importe, cuenta, centro))
+	# La base del pedido ya lleva su descuento, y no hay tarifa que aplicar a un hito.
+	factura.ignore_pricing_rule = 1
+	factura.additional_discount_percentage = 0
+	factura.discount_amount = 0
+	factura.update_stock = 0
+	# Los impuestos del pedido solo valen si llevan una plantilla activa. Si no los trae o su
+	# plantilla está retirada, se deciden como en una factura nueva (reglas de impuestos por país
+	# del cliente o plantilla por defecto).
 	plantilla_pedido = pedido.get("taxes_and_charges")
 	usar_pedido = bool(
 		plantilla_pedido
@@ -407,9 +569,8 @@ def factura_desde_hito(sales_order: str, fila: str) -> dict:
 	for impuesto in factura.get("taxes") or []:
 		if impuesto.charge_type == "Actual":
 			impuesto.tax_amount = flt(impuesto.tax_amount) * parte
-	# Un descuento sobre el total en porcentaje ya vale tal cual; uno en importe se reparte.
-	if not flt(pedido.additional_discount_percentage) and flt(pedido.discount_amount):
-		factura.discount_amount = flt(pedido.discount_amount) * parte
+		# El importe del hito es la base, sin impuestos incluidos.
+		impuesto.included_in_print_rate = 0
 
 	if factura.meta.has_field("hito_pedido"):
 		factura.hito_pedido = plazo.name
@@ -418,28 +579,32 @@ def factura_desde_hito(sales_order: str, fila: str) -> dict:
 	factura.set("payment_schedule", [])
 	factura.payment_terms_template = frappe.get_cached_value("Customer", pedido.customer, "payment_terms")
 
-	total = len(pedido.payment_schedule)
-	partes = [
+	factura.remarks = (
 		_("Pedido del cliente {0}").format(pedido.po_no)
 		if pedido.po_no
-		else _("Pedido {0}").format(pedido.name),
-		_("{0}, hito {1} de {2}, {3} % de {4}").format(
-			_etiqueta(plazo, total),
-			plazo.idx,
-			total,
-			_porcentaje(plazo.invoice_portion),
-			f"{fmt_money(pedido.grand_total, precision=2)} {pedido.currency}",
-		),
-	]
-	factura.remarks = "\n".join(partes)
+		else _("Pedido {0}").format(pedido.name)
+	)
 
 	avisos = _rellenar(factura, plantilla=not usar_pedido)
-	sin_cuenta = [str(linea.idx) for linea in factura.items if not linea.get("income_account")]
-	if sin_cuenta:
+	if importe < base - 0.005:
+		avisos.append(
+			_("El hito es de {0}, pero en el pedido solo quedan {1} por facturar.").format(
+				fmt_money(base, precision=2, currency=pedido.currency),
+				fmt_money(importe, precision=2, currency=pedido.currency),
+			)
+		)
+	if not factura.items[0].get("income_account"):
+		avisos.append(_("La línea no tiene cuenta de ingresos. Elígela en el panel de la línea."))
+	elif varias_cuentas:
 		avisos.append(
 			_(
-				"Las líneas {0} no tienen cuenta de ingresos. Elígela en el panel de la línea, o ponla "
-				"por defecto en el artículo o en su grupo para que salga sola."
-			).format(", ".join(sin_cuenta))
+				"El pedido reparte sus líneas entre varias cuentas de ingresos. La línea del hito usa {0}, "
+				"la de más importe. Cámbiala en el panel de la línea si no es la correcta."
+			).format(cuenta)
+		)
+	if any(i.item_tax_template for i in pedido.items):
+		# La línea no tiene artículo del que traer su tipo: lleva el de los impuestos de la cabecera.
+		avisos.append(
+			_("Hay líneas del pedido con plantilla de impuestos propia. Revisa los impuestos de la factura.")
 		)
 	return _respuesta(factura, avisos)

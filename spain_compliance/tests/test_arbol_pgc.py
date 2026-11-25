@@ -87,7 +87,7 @@ class TestPlan(TestCase):
 			_fila("cli", "4300000161", "Cliente de ejemplo", padre="43", grupo=0),
 			_fila("suelto", "", "Sin número", padre="40", grupo=0),
 		]
-		plan = planificar(filas, abbr="SRG")
+		plan = planificar(filas, abbr="AAA")
 		self.assertEqual(plan["renombrar"], [{"name": "430", "number": "430", "account_name": "Clientes"}])
 		self.assertEqual(
 			plan["recolocar"],
@@ -104,7 +104,7 @@ class TestPlan(TestCase):
 			_fila("430", "430", CUADRO["430"], padre="43"),
 			_fila("cli", "4300000161", "Cliente de ejemplo", padre="430", grupo=0),
 		]
-		plan = planificar(filas, abbr="SRG")
+		plan = planificar(filas, abbr="AAA")
 		self.assertEqual(plan["crear"], [])
 		self.assertEqual(plan["renombrar"], [])
 		self.assertEqual(plan["recolocar"], [])
@@ -142,7 +142,7 @@ class TestPlantilla(TestCase):
 
 
 def _fila(name, number, account_name, padre, grupo=1):
-	docname = f"{number} - {account_name} - SRG" if number else name
+	docname = f"{number} - {account_name} - AAA" if number else name
 	return {
 		"name": docname if number and account_name == CUADRO.get(number) else name,
 		"number": number,

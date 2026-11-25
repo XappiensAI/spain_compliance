@@ -339,11 +339,16 @@ def _descripcion(doctype: str, name: str, defecto: str | None) -> str:
 
 
 def _tipo_op_por_articulos(doctype: str, name: str) -> str:
-	"""Entrega si la mayor parte del neto son artículos de stock o activos fijos."""
-	tabla = "Sales Invoice Item" if doctype == "Sales Invoice" else "Purchase Invoice Item"
+	"""Entrega si la mayor parte del neto son artículos de stock o activos fijos.
+
+	La línea de un hito de pedido no tiene artículo: cuenta como las líneas de su pedido.
+	"""
+	venta = doctype == "Sales Invoice"
+	tabla = "Sales Invoice Item" if venta else "Purchase Invoice Item"
+	pedido = "IF(IFNULL(it.item_code, '') = '', it.sales_order, NULL)" if venta else "NULL"
 	filas = frappe.db.sql(
 		f"""
-		SELECT ABS(it.base_net_amount) AS importe,
+		SELECT ABS(it.base_net_amount) AS importe, {pedido} AS pedido,
 			IFNULL(i.is_stock_item, 0) OR IFNULL(i.is_fixed_asset, 0) AS bien
 		FROM `tab{tabla}` it LEFT JOIN `tabItem` i ON i.name = it.item_code
 		WHERE it.parent = %s
@@ -352,8 +357,23 @@ def _tipo_op_por_articulos(doctype: str, name: str) -> str:
 		as_dict=True,
 	)
 	bienes = sum(flt(f.importe) for f in filas if f.bien)
+	bienes += sum(flt(f.importe) * _parte_bienes_pedido(f.pedido) for f in filas if f.pedido)
 	total = sum(flt(f.importe) for f in filas)
 	return TIPO_OP_ENTREGA if total and bienes * 2 >= total else TIPO_OP_SERVICIOS
+
+
+def _parte_bienes_pedido(pedido: str) -> float:
+	"""Parte (0 a 1) del neto del pedido que son artículos de stock o activos fijos."""
+	total, bienes = frappe.db.sql(
+		"""
+		SELECT SUM(ABS(it.base_net_amount)),
+			SUM(IF(IFNULL(i.is_stock_item, 0) OR IFNULL(i.is_fixed_asset, 0), ABS(it.base_net_amount), 0))
+		FROM `tabSales Order Item` it LEFT JOIN `tabItem` i ON i.name = it.item_code
+		WHERE it.parent = %s
+		""",
+		pedido,
+	)[0]
+	return flt(bienes) / flt(total) if flt(total) else 0.0
 
 
 def _cabecera(doctype: str, name: str) -> frappe._dict:

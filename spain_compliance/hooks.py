@@ -68,11 +68,18 @@ doc_events = {
 			"spain_compliance.contabilidad.registro_fiscal.validar_factura",
 			"spain_compliance.overrides.sales_invoice.on_validate_correlatividad",
 			"spain_compliance.api.hitos.validar_hito_unico",
+			"spain_compliance.api.hitos.validar_total_pedido",
 		],
 		"before_submit": "spain_compliance.contabilidad.registro_fiscal.before_submit",
 		# SII: registro pendiente al validar, baja pendiente al cancelar
-		"on_submit": "spain_compliance.contabilidad.sii.registro.on_submit",
-		"on_cancel": "spain_compliance.contabilidad.sii.registro.on_cancel",
+		"on_submit": [
+			"spain_compliance.contabilidad.sii.registro.on_submit",
+			"spain_compliance.api.hitos.actualizar_pedidos",
+		],
+		"on_cancel": [
+			"spain_compliance.contabilidad.sii.registro.on_cancel",
+			"spain_compliance.api.hitos.actualizar_pedidos",
+		],
 	},
 	"Purchase Invoice": {
 		"before_naming": "spain_compliance.contabilidad.series.on_before_naming",

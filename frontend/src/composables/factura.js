@@ -445,6 +445,33 @@ export function mensajeError(e) {
   return String(errorMessage(e, __('No se ha podido completar la operación'))).replace(/<[^>]+>/g, '')
 }
 
+/** Genera el PDF en el servidor y lo descarga sin salir de la página. */
+export async function descargarPdf(doctype, name) {
+  const params = new URLSearchParams({ doctype, name })
+  const res = await fetch(`/api/method/spain_compliance.api.impresion.descargar_pdf?${params}`)
+  const tipo = res.headers.get('Content-Type') || ''
+  if (!res.ok || !tipo.startsWith('application/pdf')) {
+    // Frappe devuelve los motivos (permisos, borrador no imprimible…) en JSON.
+    const datos = await res.json().catch(() => ({}))
+    let motivo = ''
+    try {
+      motivo = JSON.parse(JSON.parse(datos._server_messages)[0]).message
+    } catch {
+      motivo = ''
+    }
+    throw new Error(motivo || __('No se ha podido generar el PDF'))
+  }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${name.replace(/[ /]/g, '-')}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // Safari cancela la descarga si se revoca la URL al momento.
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
+}
+
 /** Etiqueta del meta de un campo, con alternativa. */
 export function etiqueta(config, campo, tabla = null, alternativa = '') {
   const campos = tabla ? config?.tablas?.[tabla]?.campos : config?.campos

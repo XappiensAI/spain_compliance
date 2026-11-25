@@ -587,6 +587,7 @@ import {
   df,
   estadoFactura,
   mensajeError,
+  descargarPdf,
   cuentaCorta,
   htmlATexto,
   textoAHtml,
@@ -816,6 +817,23 @@ function abrir(url) {
   window.open(url, '_blank')
 }
 
+let descargando = false
+
+async function descargar() {
+  if (descargando) return
+  descargando = true
+  const aviso = toast.loading(__('Generando PDF…'))
+  try {
+    await descargarPdf(f.doctype, f.doc.name)
+    toast.success(__('PDF descargado'))
+  } catch (e) {
+    toast.error(mensajeError(e))
+  } finally {
+    toast.dismiss(aviso)
+    descargando = false
+  }
+}
+
 const icono = (c) => () => h(markRaw(c), { class: 'size-4' })
 
 const menu = computed(() => {
@@ -836,8 +854,7 @@ const menu = computed(() => {
       {
         label: __('Descargar PDF'),
         icon: icono(LucideFileDown),
-        onClick: () =>
-          abrir(`/api/method/frappe.utils.print_format.download_pdf?doctype=${encodeURIComponent(f.doctype)}&name=${nombre}`),
+        onClick: descargar,
       },
     )
   }
