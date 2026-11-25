@@ -15,3 +15,13 @@ dist
 # Local editor / agent configuration
 .cursor/
 AGENTS.md
+
+# Certificados y claves: nunca en el repositorio
+*.p12
+*.pfx
+*.pem
+*.key
+*.jks
+*.keystore
+.env
+.env.*
