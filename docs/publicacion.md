@@ -5,7 +5,7 @@
 | Repositorio | Papel |
 |---|---|
 | GitLab interno de Xappiens | **Canónico.** Aquí se hace el desarrollo diario y aquí está la rama que corre en el ERP de Xappiens. |
-| [GitHub `xappiens-ai/spain_compliance`](https://github.com/xappiens-ai/spain_compliance) | **Público.** Es de donde instalan Frappe Cloud y `bench get-app`. |
+| [GitHub `XappiensAI/spain_compliance`](https://github.com/XappiensAI/spain_compliance) | **Público.** Es de donde instalan Frappe Cloud y `bench get-app`. |
 
 GitHub recibe un commit por publicación con el mismo contenido que la rama de producción de GitLab. El historial de trabajo interno no se publica. Si encuentras diferencias de contenido entre los dos, GitLab es el que vale.
 
@@ -14,7 +14,7 @@ GitHub recibe un commit por publicación con el mismo contenido que la rama de p
 | Rama canónica (GitLab) | Rama pública (GitHub) | Frappe / ERPNext |
 |---|---|---|
 | `frappe-15` | `version-15` | v15 |
-| `frappe-16` | (cuando se publique) | v16 |
+| `frappe-16` | `version-16` (desde 0.4.0, 2026-11-23) | v16 |
 
 En GitLab Xappiens las ramas se llaman `frappe-N`. En GitHub público se usa la convención Frappe (`version-N`) para Frappe Cloud y `bench get-app`.
 
@@ -30,7 +30,7 @@ La app se desarrolla y se prueba en un ERPNext **en producción** (el de Xappien
 
 1. Commit en la rama canónica.
 2. Push a GitLab.
-3. Push a GitHub, rama `version-15`.
+3. Push a GitHub, rama `version-N` de la rama canónica (`frappe-15` → `version-15`, `frappe-16` → `version-16`): un commit con el árbol de la rama canónica y, si sube `__version__`, su etiqueta `vX.Y.Z`.
 4. En el ERP de referencia: `bench migrate` si hay patches o campos nuevos, `clear-cache`, `bench restart`. Si cambió `frontend/`, antes `yarn build` con Node 22.
 
 ## Versiones
