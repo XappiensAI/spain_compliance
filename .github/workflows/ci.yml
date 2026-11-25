@@ -14,11 +14,13 @@ jobs:
       - uses: astral-sh/ruff-action@v3
         with:
           version: "0.17.6"
-          args: check spain_compliance
+          src: ./spain_compliance
+          args: check
       - uses: astral-sh/ruff-action@v3
         with:
           version: "0.17.6"
-          args: format --check spain_compliance
+          src: ./spain_compliance
+          args: format --check
 
   frontend:
     name: Frontend build
